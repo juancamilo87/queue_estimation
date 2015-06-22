@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#ffffff"
+    android:layout_margin="10dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/choose_text_test"
+        android:text="Please choose a venue:"
+        android:textAppearance="@android:style/TextAppearance.Large"
+        android:layout_alignParentTop="true"/>
+    <ImageView
+        android:id="@+id/powered"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:src="@drawable/powered_by_google_light"/>
+
+    <ListView
+        android:layout_below="@id/choose_text_test"
+        android:layout_above="@id/powered"
+        android:id="@+id/choose_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        >
+    </ListView>
+
+    <ProgressBar
+        android:id="@+id/empty_place"
+        android:layout_below="@id/choose_text_test"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        style="@style/Base.TextAppearance.AppCompat.Widget.TextView.SpinnerItem"/>
+
+
+</RelativeLayout>

@@ -31,17 +31,9 @@ public class Plugin extends Aware_Plugin {
 
     public static final int MESSAGE_READ = 1837;
 
-    public String uuid;
-
-    private BluetoothAdapter mBluetoothAdapter;
-
-    private ConnectedThread conn;
-
     private final IBinder mBinder = new LocalBinder();
 
     public static ContextProducer context_producer;
-
-    private ServerAcceptThread serverAcceptThread;
 
 
     @Override
@@ -53,19 +45,10 @@ public class Plugin extends Aware_Plugin {
             Aware.setSetting(this, Settings.STATUS_PLUGIN_TRACESCOLLECTOR, true);
         }
 
-        if(Aware.getSetting(this, Settings.BT_UUID_KEY).equals(""))
-        {
-            uuid = "cfa37877-e7a1-41a8-9673-2b0844b5868f";
-        }
-        else
-        {
-            uuid = Aware.getSetting(this, Settings.BT_UUID_KEY);
-            Log.d("UUID", "Got UUID from AWARE settings");
-        }
+
 
         //Activate any sensors/plugins you need here
         //...
-        serverAcceptThread = new ServerAcceptThread();
 
         //Any active plugin/sensor shares its overall context using broadcasts
         CONTEXT_PRODUCER = new ContextProducer() {
@@ -93,49 +76,6 @@ public class Plugin extends Aware_Plugin {
         TAG = "Template";
         DEBUG = Aware.getSetting(this, Aware_Preferences.DEBUG_FLAG).equals("true");
 
-
-
-        if(!connected())
-        {
-            Intent notificationIntent = new Intent(HelperActivity.NOTIFICATION_ACTION);
-            sendOrderedBroadcast(notificationIntent, null);
-            try{
-                mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-                if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
-                    Log.d("BT Connection","Bluetooth is not enabled");
-                }
-                else
-                {
-                    if(serverAcceptThread != null)
-                    {
-                        try{
-                            serverAcceptThread.cancel();
-                            serverAcceptThread.interrupt();
-                        }catch(Exception e){
-                            Log.d("TCError","Error canceling thread");
-                        }
-                    }
-                    try{
-                        serverAcceptThread = new ServerAcceptThread();
-                        serverAcceptThread.start();
-                    }catch (Exception e){
-                        Log.d("TCError","Error starting thread");
-                    }
-                }
-
-            }catch(Exception e){}
-
-        }
-        else
-        {
-            NotificationManager mNotifyMgr =
-                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-            int mNotificationId = 13548;
-
-            mNotifyMgr.cancel(mNotificationId);
-        }
-
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -148,195 +88,12 @@ public class Plugin extends Aware_Plugin {
 
         //Deactivate any sensors/plugins you activated here
         //...
-        try{
-            serverAcceptThread.cancel();
-        }catch(Exception e){}
 
         //Ask AWARE to apply your settings
         //sendBroadcast(new Intent(Aware.ACTION_AWARE_REFRESH));
         Aware.stopPlugin(this, getPackageName());
     }
 
-
-
-    private class ServerAcceptThread extends Thread {
-        private final BluetoothServerSocket mmServerSocket;
-
-        public ServerAcceptThread() {
-            // Use a temporary object that is later assigned to mmServerSocket,
-            // because mmServerSocket is final
-            BluetoothServerSocket tmp = null;
-            Log.d("TCError","Thread created");
-            try {
-                mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-                // MY_UUID is the app's UUID string, also used by the client code
-                tmp = mBluetoothAdapter.listenUsingRfcommWithServiceRecord("test", UUID.fromString(uuid));
-            } catch (IOException e) {
-                Log.d("TCError","Error listening");}
-            mmServerSocket = tmp;
-        }
-
-        public void run() {
-
-
-
-            BluetoothSocket socket = null;
-            // Keep listening until exception occurs or a socket is returned
-            while (true) {
-                try {
-                    Log.d("TCError","starting to accept");
-                    socket = mmServerSocket.accept();
-                } catch (IOException e) {
-                    Log.d("TCError","Error accepting IO");
-                    break;
-                } catch (Exception e)
-                {
-                    Log.d("TCError","Error accepting G");
-                    break;
-                }
-                // If a connection was accepted
-                if (socket != null) {
-                    // Do work to manage the connection (in a separate thread)
-
-                    manageConnectedSocket(socket);
-
-                    try{
-                        mmServerSocket.close();
-
-                    } catch (IOException e) {
-                        Log.d("TCError","Error closing ssocket");
-                    }
-                    break;
-                }
-            }
-        }
-
-        /** Will cancel the listening socket, and cause the thread to finish */
-        public void cancel() {
-            try {
-                mmServerSocket.close();
-            } catch (IOException e) {
-                Log.d("TCError","Error closing socket IO");}
-        }
-    }
-
-    private void manageConnectedSocket(BluetoothSocket socket)
-    {
-        NotificationManager mNotifyMgr =
-                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        int mNotificationId = 13548;
-
-        mNotifyMgr.cancel(mNotificationId);
-        conn = new ConnectedThread(socket);
-
-        conn.start();
-
-        //Manage connection
-    }
-
-    private class ConnectedThread extends Thread {
-        private final BluetoothSocket mmSocket;
-        private final InputStream mmInStream;
-        private final OutputStream mmOutStream;
-
-        public ConnectedThread(BluetoothSocket socket) {
-            mmSocket = socket;
-            InputStream tmpIn = null;
-            OutputStream tmpOut = null;
-
-            // Get the input and output streams, using temp objects because
-            // member streams are final
-            try {
-                tmpIn = socket.getInputStream();
-                tmpOut = socket.getOutputStream();
-            } catch (IOException e) { }
-
-            mmInStream = tmpIn;
-            mmOutStream = tmpOut;
-        }
-
-        public void run() {
-            byte[] buffer = new byte[1024];  // buffer store for the stream
-            int bytes; // bytes returned from read()
-
-            // Keep listening to the InputStream until an exception occurs
-            while (true) {
-                try {
-                    // Read from the InputStream
-                    bytes = mmInStream.read(buffer);
-
-                    // Send the obtained bytes to the UI activity
-                    mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
-                            .sendToTarget();
-                } catch (IOException e) {
-                    break;
-                }
-            }
-        }
-
-        /* Call this from the main activity to send data to the remote device */
-        public void write(byte[] bytes) {
-            try {
-                mmOutStream.write(bytes);
-                mmOutStream.flush();
-            } catch (IOException e) { }
-        }
-
-        /* Call this from the main activity to shutdown the connection */
-        public void cancel() {
-            try {
-                mmSocket.close();
-            } catch (IOException e) { }
-        }
-
-        @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-        public boolean isConnected()
-        {
-            try {
-                mmOutStream.write("alive".getBytes());
-                mmOutStream.flush();
-            } catch (IOException e) {
-                return false;
-            }
-            return mmSocket.isConnected();
-        }
-    }
-
-    private static class MyHandler extends Handler {
-        private final WeakReference<Plugin> mPlugin;
-
-        public MyHandler(Plugin plugin) {
-            mPlugin = new WeakReference<Plugin>(plugin);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            Plugin plugin = mPlugin.get();
-            if (plugin != null) {
-                switch (msg.what) {
-                    case MESSAGE_READ:
-                        byte[] data = (byte[]) msg.obj;
-                        String readMessage = new String((byte[]) msg.obj, 0, (int) msg.arg1).trim();
-                        Log.d("Connection", readMessage);
-
-                        if (readMessage != null) {
-                            int count = readMessage.length() - readMessage.replace("#", "").length();
-                            if (count == 4 && readMessage.startsWith("#") && readMessage.endsWith("#")) {
-                                String[] information = readMessage.split("#", -1);
-                                for (int i = 1; i < 4; i++) {
-                                    Log.d("To Store", "TAG" + i + ": " + information[i]);
-                                }
-
-                                storeData(information[1], information[2], information[3], plugin);
-                            }
-                        }
-                }
-            }
-        }
-    }
-
-    public MyHandler mHandler = new MyHandler(this);
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -358,36 +115,6 @@ public class Plugin extends Aware_Plugin {
     //callbacks interface for communication with service clients!
     public interface Callbacks{
         public void updateClient(long data);
-    }
-
-    public void startConnection()
-    {
-        try{
-            if(serverAcceptThread != null)
-            {
-                serverAcceptThread.cancel();
-                serverAcceptThread.interrupt();
-            }
-
-        }catch(Exception e){
-            Log.d("TCError","Error canceling thread force");
-        }
-        try{
-            serverAcceptThread = new ServerAcceptThread();
-            serverAcceptThread.start();
-        }catch (Exception e){
-            Log.d("TCError","Error starting thread force");
-        }
-    }
-
-    public boolean connected()
-    {
-        if(conn != null)
-        {
-            return conn.isConnected();
-        }
-
-        return false;
     }
 
     private static void storeData(String tag_1, String tag_2, String tag_3, Context context)
