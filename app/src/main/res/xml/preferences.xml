@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <CheckBoxPreference
+        android:key="status_plugin_tracescollector"
+        android:defaultValue="false"
+        android:persistent="true"
+        android:summary="Activate/Deactivate Traces Collector plugin" />
+    <Preference
+        android:key="bt_uuid_key"
+        android:defaultValue=""
+        android:persistent="true"
+        android:summary="Unique string (UUID) for the bluetooth connection" />
+</PreferenceScreen>
