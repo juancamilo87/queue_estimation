@@ -27,4 +27,5 @@ dependencies {
     compile 'com.google.android.gms:play-services:+'
     compile 'com.android.support:cardview-v7:+'
     compile 'com.awareframework:aware-core:+@aar'
+    compile 'com.android.support:recyclerview-v7:+'
 }

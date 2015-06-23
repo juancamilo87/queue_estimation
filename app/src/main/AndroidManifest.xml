@@ -49,6 +49,10 @@
             android:name=".app.ChoosePlaceActivity"
             android:label="@string/title_activity_choose_place" >
         </activity>
+        <activity
+            android:name=".app.MessagesActivity"
+            android:label="@string/title_activity_messages" >
+        </activity>
 
     </application>
 

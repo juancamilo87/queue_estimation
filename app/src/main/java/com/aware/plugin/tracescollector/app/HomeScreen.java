@@ -45,6 +45,7 @@ public class HomeScreen extends Activity {
     public static final String PREF_IN_PLACE = "In_Place";
     public static final String PREF_VENUE_NAME = "Venue_name";
     public static final String PREF_VENUE_ID = "Venue_Id";
+    public static final String PREF_MESSAGE_POSTED = "Message_posted";
 
     public static final String EVENT_ENTER = "ENTER";
     public static final String EVENT_START = "START";
@@ -57,6 +58,7 @@ public class HomeScreen extends Activity {
     public static final int NOTIFICATION_ID = 53256;
 
     static final int PICK_VENUE_REQUEST = 1;  // The request code
+    static final int MESSAGES_WALL = 2;  // The request code
 
     private Context context;
 
@@ -92,6 +94,11 @@ public class HomeScreen extends Activity {
 
     private boolean locating;
 
+
+    private Button messages_btn;
+
+    private boolean message_posted;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,6 +109,7 @@ public class HomeScreen extends Activity {
 
         locating = false;
         prefs = getSharedPreferences(PREFS_NAME, 0);
+        message_posted = prefs.getBoolean(PREF_MESSAGE_POSTED, false);
         queuing = prefs.getBoolean(PREF_QUEUING, false);
         inPlace = prefs.getBoolean(PREF_IN_PLACE, false);
         venueName = prefs.getString(PREF_VENUE_NAME, "");
@@ -114,6 +122,8 @@ public class HomeScreen extends Activity {
         btn_enter_exit = (ImageButton) findViewById(R.id.home_trigger_enter_exit_button);
         txt_enter_exit = (TextView) findViewById(R.id.home_text_enter_exit);
         progress_circle = (ProgressBar) findViewById(R.id.home_progress_circle);
+
+        messages_btn = (Button) findViewById(R.id.home_messages_wall_btn);
 
         initializeButtons();
 
@@ -128,6 +138,16 @@ public class HomeScreen extends Activity {
             @Override
             public void onClick(View v) {
                 startStopToggle();
+            }
+        });
+
+        messages_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(context, MessagesActivity.class);
+                intent.putExtra("venue_id",venueId);
+                intent.putExtra("message_posted", message_posted);
+                startActivityForResult(intent, MESSAGES_WALL);
             }
         });
     }
@@ -264,14 +284,17 @@ public class HomeScreen extends Activity {
                 progress_circle.setVisibility(View.GONE);
                 locating = false;
                 btn_enter_exit.setEnabled(true);
-                initializeButtons();
                 venue = (Place) data.getParcelableExtra("venue");
                 SharedPreferences.Editor editor = prefs.edit();
                 venueName = venue.getName().toString();
                 venueId = venue.getId();
+                message_posted = false;
                 editor.putString(PREF_VENUE_NAME, venueName);
                 editor.putString(PREF_VENUE_ID, venueId);
+                editor.putBoolean(PREF_MESSAGE_POSTED,message_posted);
                 editor.commit();
+                initializeButtons();
+
                 Toast.makeText(this, "The venue is: " + venueName,Toast.LENGTH_SHORT).show();
                 sendData(EVENT_ENTER);
                 showNotification(EVENT_ENTER);
@@ -296,6 +319,16 @@ public class HomeScreen extends Activity {
                 // Do something with the contact here (bigger example below)
             }
 
+        }
+        if(requestCode == MESSAGES_WALL)
+        {
+            if(resultCode == RESULT_OK)
+            {
+                SharedPreferences.Editor editor = prefs.edit();
+                message_posted = true;
+                editor.putBoolean(PREF_MESSAGE_POSTED, message_posted);
+                editor.commit();
+            }
         }
     }
 
@@ -381,13 +414,14 @@ public class HomeScreen extends Activity {
                     rl_start_stop.setVisibility(View.VISIBLE);
                     btn_start_stop.setImageResource(R.drawable.trigger_button_stop);
                     txt_start_stop.setText(getString(R.string.stop_button));
+                    messages_btn.setVisibility(View.VISIBLE);
                 }
                 else
                 {
                     rl_enter_exit.setVisibility(View.VISIBLE);
                     btn_enter_exit.setImageResource(R.drawable.trigger_button_stop);
                     txt_enter_exit.setText(getString(R.string.exit_button));
-
+                    messages_btn.setVisibility(View.GONE);
                     rl_start_stop.setVisibility(View.VISIBLE);
                     btn_start_stop.setImageResource(R.drawable.trigger_button_start);
                     txt_start_stop.setText(getString(R.string.start_button));
@@ -399,6 +433,7 @@ public class HomeScreen extends Activity {
                 btn_enter_exit.setImageResource(R.drawable.trigger_button_start);
                 txt_enter_exit.setText(getString(R.string.enter_button));
                 rl_start_stop.setVisibility(View.GONE);
+                messages_btn.setVisibility(View.GONE);
             }
         }
     }
