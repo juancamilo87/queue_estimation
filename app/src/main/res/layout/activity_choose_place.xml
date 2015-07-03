@@ -37,5 +37,14 @@
         android:layout_centerHorizontal="true"
         style="@style/Base.TextAppearance.AppCompat.Widget.TextView.SpinnerItem"/>
 
+    <TextView
+        android:id="@+id/no_places"
+        android:layout_below="@id/choose_text_test"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No places found, please try again"
+        android:layout_centerHorizontal="true"
+        android:textSize="18sp"
+        />
 
 </RelativeLayout>

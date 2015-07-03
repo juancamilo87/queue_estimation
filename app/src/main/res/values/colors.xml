@@ -4,4 +4,15 @@
     <color name="secondary_text_default_material_light">#b3029789</color>
 
     <color name="primary_text_default_material_light_original">#de000000</color>
+    <color name="orange">#ffff5c1c</color>
+    <color name="light_orange">#ffffa765</color>
+    <color name="dark_orange">#ffd64d1a</color>
+    <color name="light_dark_orange">#ffd38152</color>
+    <color name="gray">#ff525252</color>
+    <color name="light_gray">#ffbababa</color>
+
+    <color name="primary_dark">#b3029789</color>
+    <color name="background">#FFFFFF</color>
+
+    <color name="holo_red_light">#ffff4444</color>
 </resources>

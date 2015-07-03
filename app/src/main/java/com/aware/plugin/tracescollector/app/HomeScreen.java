@@ -33,7 +33,10 @@ import com.aware.Aware;
 import com.aware.Aware_Preferences;
 import com.aware.plugin.tracescollector.Provider;
 import com.aware.plugin.tracescollector.R;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlacePicker;
 
 import java.util.Set;
 
@@ -59,6 +62,7 @@ public class HomeScreen extends Activity {
 
     static final int PICK_VENUE_REQUEST = 1;  // The request code
     static final int MESSAGES_WALL = 2;  // The request code
+    static final int PLACE_PICKER_REQUEST = 3;
 
     private Context context;
 
@@ -96,6 +100,7 @@ public class HomeScreen extends Activity {
 
 
     private Button messages_btn;
+    private Button map_btn;
 
     private boolean message_posted;
 
@@ -124,6 +129,7 @@ public class HomeScreen extends Activity {
         progress_circle = (ProgressBar) findViewById(R.id.home_progress_circle);
 
         messages_btn = (Button) findViewById(R.id.home_messages_wall_btn);
+        map_btn = (Button) findViewById(R.id.home_map_btn);
 
         initializeButtons();
 
@@ -148,6 +154,23 @@ public class HomeScreen extends Activity {
                 intent.putExtra("venue_id",venueId);
                 intent.putExtra("message_posted", message_posted);
                 startActivityForResult(intent, MESSAGES_WALL);
+            }
+        });
+
+        map_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
+//                try {
+//                    startActivityForResult(builder.build(context), PLACE_PICKER_REQUEST);
+//                } catch (GooglePlayServicesRepairableException e) {
+//                    e.printStackTrace();
+//                } catch (GooglePlayServicesNotAvailableException e) {
+//                    e.printStackTrace();
+//                }
+
+                Intent intent = new Intent(context,HeatMap.class);
+                startActivity(intent);
             }
         });
     }
@@ -414,6 +437,7 @@ public class HomeScreen extends Activity {
                     rl_start_stop.setVisibility(View.VISIBLE);
                     btn_start_stop.setImageResource(R.drawable.trigger_button_stop);
                     txt_start_stop.setText(getString(R.string.stop_button));
+                    map_btn.setVisibility(View.GONE);
                     messages_btn.setVisibility(View.VISIBLE);
                 }
                 else
@@ -422,6 +446,7 @@ public class HomeScreen extends Activity {
                     btn_enter_exit.setImageResource(R.drawable.trigger_button_stop);
                     txt_enter_exit.setText(getString(R.string.exit_button));
                     messages_btn.setVisibility(View.GONE);
+                    map_btn.setVisibility(View.VISIBLE);
                     rl_start_stop.setVisibility(View.VISIBLE);
                     btn_start_stop.setImageResource(R.drawable.trigger_button_start);
                     txt_start_stop.setText(getString(R.string.start_button));
@@ -434,6 +459,7 @@ public class HomeScreen extends Activity {
                 txt_enter_exit.setText(getString(R.string.enter_button));
                 rl_start_stop.setVisibility(View.GONE);
                 messages_btn.setVisibility(View.GONE);
+                map_btn.setVisibility(View.VISIBLE);
             }
         }
     }
@@ -463,5 +489,11 @@ public class HomeScreen extends Activity {
         txt_enter_exit.setTextColor(getResources().getColor(android.R.color.darker_gray));
         btn_start_stop.setEnabled(false);
         txt_start_stop.setTextColor(getResources().getColor(android.R.color.darker_gray));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        initializeButtons();
     }
 }

@@ -28,4 +28,6 @@ dependencies {
     compile 'com.android.support:cardview-v7:+'
     compile 'com.awareframework:aware-core:+@aar'
     compile 'com.android.support:recyclerview-v7:+'
+    compile 'com.google.maps.android:android-maps-utils:0.3+'
+    compile 'com.android.support:support-v4:22.2.0'
 }

@@ -73,7 +73,9 @@ public class ChoosePlaceActivity extends Activity implements GoogleApiClient.Con
         places = new ArrayList<MyPlace>();
         listAdapter = new ArrayAdapter<MyPlace>(this,android.R.layout.simple_list_item_1,places);
         listView.setAdapter(listAdapter);
-        listView.setEmptyView(findViewById(R.id.empty_place));
+        listView.setEmptyView(findViewById(R.id.no_places));
+        findViewById(R.id.no_places).setVisibility(View.GONE);
+        findViewById(R.id.empty_place).setVisibility(View.VISIBLE);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
@@ -206,11 +208,16 @@ public class ChoosePlaceActivity extends Activity implements GoogleApiClient.Con
         result.setResultCallback( new ResultCallback<PlaceLikelihoodBuffer>() {
             @Override
             public void onResult( PlaceLikelihoodBuffer likelyPlaces ) {
+                findViewById(R.id.empty_place).setVisibility(View.GONE);
                 Log.d("tracescollector","Got result with " + likelyPlaces.getCount() + " likely places");
                 //PlaceLikelihood placeLikelihood = likelyPlaces.get( 0 );
                 PlaceLikelihood newPlace;
                 listAdapter.clear();
                 places.clear();
+                if(likelyPlaces.getCount() == 0)
+                {
+                    findViewById(R.id.no_places).setVisibility(View.VISIBLE);
+                }
                 for(int i = 0; i< likelyPlaces.getCount(); i++)
                 {
                     newPlace = likelyPlaces.get(i);
