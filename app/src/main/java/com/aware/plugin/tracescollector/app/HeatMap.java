@@ -79,6 +79,8 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
     // Bool to track whether the app is already resolving an error
     private boolean mResolvingError = false;
 
+    private static final float ZOOM_THRESHOLD = 15;
+
     private static final String STATE_RESOLVING_ERROR = "resolving_error";
 
     private GoogleApiClient mGoogleApiClient;
@@ -100,6 +102,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
     private HashMap<String, Marker> markerHashMap;
 
     private HashMap<String,Integer> waitTimes;
+    private HashMap<Marker, MyDBPlace> markerPlaceHash;
 
     private LocationManager locationManager;
 
@@ -109,6 +112,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         super.onCreate(savedInstanceState);
         busy = false;
         waitTimes = new HashMap<>();
+        markerPlaceHash = new HashMap<>();
         allMarkers = new ArrayList<>();
         markerHashMap = new HashMap<>();
         mResolvingError = savedInstanceState != null && savedInstanceState.getBoolean(STATE_RESOLVING_ERROR, false);
@@ -147,6 +151,16 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, MIN_TIME, MIN_DISTANCE, this);
+
+        map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                Log.d("Marker","Place Id: "+markerPlaceHash.get(marker).getId());
+                new WaitTimeOneTask().execute(markerPlaceHash.get(marker));
+                return false;
+            }
+        });
+
     }
 
 
@@ -156,7 +170,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         {
             getNewPlaces(cameraPosition.target);
         }
-        if(cameraPosition.zoom<=15)
+        if(cameraPosition.zoom<=ZOOM_THRESHOLD)
         {
             if(allMarkers!=null && allMarkers.size()>0 )
             {
@@ -191,8 +205,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
     {
         if(!locationSearched(latLng))
         {
-            Log.d("Search","Not searched");
-            store(latLng);
+            Log.d("Search", "Not searched");
             if(mGoogleApiClient.isConnected())
             {
                 guessCurrentPlace(latLng);
@@ -257,9 +270,10 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                         .position(place.getLatLng())
                         .title(place.getName())
                         .snippet("Waiting time: "+place.getWaitTime()+"min")
-                        .visible(map.getCameraPosition().zoom>15));
+                        .visible(map.getCameraPosition().zoom>ZOOM_THRESHOLD));
                 allMarkers.add(marker);
-                markerHashMap.put(place.getId(),marker);
+                markerHashMap.put(place.getId(), marker);
+                markerPlaceHash.put(marker,place);
             }
             else
             {
@@ -319,9 +333,10 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                                                 .position(place.getLatLng())
                                                 .title(place.getName())
                                                 .snippet("Waiting time: "+place.getWaitTime()+"min")
-                                                .visible(map.getCameraPosition().zoom>15));
+                                                .visible(map.getCameraPosition().zoom>ZOOM_THRESHOLD));
                                         allMarkers.add(marker);
                                         markerHashMap.put(place.getId(),marker);
+                                        markerPlaceHash.put(marker,place);
                                     }
                                     else
                                     {
@@ -336,6 +351,18 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
             new Thread(runnable).start();
 
         }
+    }
+
+    private void refreshMarker(MyDBPlace parameterPlace) {
+
+        int index = allPlaces.indexOf(parameterPlace);
+        if(index>=0)
+        {
+            allPlaces.get(index).setWaitTime(waitTimes.get(allPlaces.get(index).getId()));
+        }
+
+        markerHashMap.get(parameterPlace.getId()).setSnippet("Waiting time: "+parameterPlace.getWaitTime()+"min");
+        markerHashMap.get(parameterPlace.getId()).showInfoWindow();
     }
 
 
@@ -462,7 +489,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
 
     }
 
-    private class GetPlacesTask extends AsyncTask<Void, Void, Void>
+    private class GetPlacesTask extends AsyncTask<Void, Void, Boolean>
     {
 
         private LatLng latLng;
@@ -475,7 +502,8 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         }
 
         @Override
-        protected Void doInBackground(Void... params) {
+        protected Boolean doInBackground(Void... params) {
+            boolean answer = true;
             String result[] = new String[3];
             String jsonResponse = null;
 
@@ -485,6 +513,19 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
             URL += "key=AIzaSyDeS7X-VKQjeKHb4o2mBUSDQZjCx9GflIo";
             URL += "&location="+latLng.latitude+","+latLng.longitude;
             URL += "&radius="+MAX_RADIUS;
+            URL += "&keyword=";
+            URL += "bakery";
+            URL += "%7C";
+            URL += "bar";
+            URL += "%7C";
+            URL += "cafe";
+            URL += "%7C";
+            URL += "night_club";
+            URL += "%7C";
+            URL += "restaurant";
+            URL += "%7C";
+            URL += "ravintola";
+            Log.d("URL",URL);
             try
             {
                 Log.d("Task","0");
@@ -592,11 +633,16 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
 
                 } else {
                     Log.e("Getter", "Failed to get 1-20 places");
+                    answer = false;
+                    return answer;
                 }
             }
             catch(Exception ex)
             {
+                answer = false;
                 Log.e("Getter", "Failed"); //response data
+                Log.e("Getter",ex.toString());
+                return answer;
             }
 
 
@@ -623,23 +669,33 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
 
                             MyDBPlace place = new MyDBPlace(name,new LatLng(latitude,longitude),place_id);
                             store(place);
-
                         }
                     }
                     catch(Exception e)
                     {
                         Log.e("JSON", "Failed"); //response data
+                        answer = false;
+                        return answer;
                     }
                 }
             }
 
-            return null;
+            return answer;
         }
 
         @Override
-        protected void onPostExecute(Void aVoid) {
+        protected void onPostExecute(Boolean answer) {
+            if(answer)
+            {
+                store(latLng);
+                reloadMap();
+            }
+            else
+            {
+                busy = false;
+            }
             Log.d("BooleanP",busy+"");
-            reloadMap();
+
         }
     }
 
@@ -746,6 +802,83 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                 waitTimes = stringIntegerHashMap;
             }
             refreshHeatMap();
+        }
+    }
+
+    private class WaitTimeOneTask extends AsyncTask<MyDBPlace, Void, ArrayList<Object>>
+    {
+
+        MyDBPlace place;
+
+        @Override
+        protected ArrayList<Object> doInBackground(MyDBPlace... params) {
+            ArrayList<Object> result = new ArrayList<>();
+            MyDBPlace placeToGet = params[0];
+            place = placeToGet;
+            try
+            {
+                JSONArray jsonArray = new JSONArray();
+                jsonArray.put(placeToGet.getId());
+
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("places",jsonArray);
+                Log.d("JSON", jsonObject.toString());
+                HttpClient client = new DefaultHttpClient();
+                String URL = "http://pan0166.panoulu.net/queue_estimation/get_wait_times.php";
+
+                HttpPost httpPost = new HttpPost(URL);
+
+                AbstractHttpEntity abstractHttpEntity = new ByteArrayEntity(jsonObject.toString().getBytes("UTF8"));
+                abstractHttpEntity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
+                httpPost.setEntity(abstractHttpEntity);
+
+                HttpResponse response = client.execute(httpPost);
+                StatusLine statusLine = response.getStatusLine();
+                int statusCode = statusLine.getStatusCode();
+                if (statusCode == 200) {
+                    HttpEntity entity = response.getEntity();
+                    InputStream content = entity.getContent();
+                    BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(content));
+                    String line;
+                    StringBuilder builder = new StringBuilder();
+                    while ((line = reader.readLine()) != null) {
+                        builder.append(line);
+                    }
+                    Log.v("Getter", "Your data: " + builder.toString());
+                    String jsonResponse = builder.toString();
+                    JSONArray jArray = new JSONArray(jsonResponse);
+
+                    for(int i = 0; i<jArray.length();i++)
+                    {
+                        if(jArray.getJSONObject(i).getString("place_id")!=null)
+                        {
+                            result.add(jArray.getJSONObject(i).getString("place_id"));
+                            result.add(Integer.parseInt(jArray.getJSONObject(i).getString("wait_time")));
+                        }
+
+                    }
+                    Log.d("Array",result.toString());
+                }
+
+            }
+            catch (Exception e)
+            {
+                Log.d("Error",e.toString());
+                return null;
+            }
+
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<Object> objectArrayList) {
+            if(objectArrayList != null)
+            {
+                waitTimes.put((String) objectArrayList.get(0),(Integer) objectArrayList.get(1));
+                place.setWaitTime((Integer)objectArrayList.get(1));
+                refreshMarker(place);
+            }
         }
     }
 

@@ -12,7 +12,7 @@ import com.aware.plugin.tracescollector.model.MyDBPlace;
 public class MySQLiteHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "local_locations.db";
-    private static final int DATABASE_VERSION = 5;
+    private static final int DATABASE_VERSION = 9;
 
     public static final long DAYS_LIMIT_IN_MILLIS = 2592000000L;
 
