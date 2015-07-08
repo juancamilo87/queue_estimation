@@ -4,34 +4,27 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.NotificationManager;
-import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewTreeObserver;
-import android.view.animation.Animation;
-import android.view.animation.ScaleAnimation;
-import android.view.inputmethod.EditorInfo;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -50,7 +43,6 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HTTP;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -63,7 +55,7 @@ import java.util.List;
  */
 public class MessagesActivity extends Activity {
 
-    private static String getURL = "http://pan0166.panoulu.net/queue_estimation/get_messages.php";
+    public static String getMessagesURL = "http://pan0166.panoulu.net/queue_estimation/get_messages.php";
     private static String postURL = "http://pan0166.panoulu.net/queue_estimation/post_message.php";
 
     private float y1,y2;
@@ -110,6 +102,8 @@ public class MessagesActivity extends Activity {
 
     private LinearLayoutManager llm;
 
+    private TextView tv_char_count;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -141,23 +135,35 @@ public class MessagesActivity extends Activity {
         bottomContainer = (LinearLayout) findViewById(R.id.messages_bottom_container);
         bottomTitle = (LinearLayout) findViewById(R.id.messages_title_bar);
         bottomRest = (LinearLayout) findViewById(R.id.messages_bottom_rest);
+        tv_char_count = (TextView) findViewById(R.id.message_char_count);
 
         edt_message.setHorizontallyScrolling(false);
         edt_message.setMaxLines(3);
 
-        edt_message.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        edt_message.addTextChangedListener(new TextWatcher() {
             @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                boolean handled = false;
-                if (actionId == EditorInfo.IME_ACTION_SEND) {
-                    if (verifyFields(true)) {
-                        postMessage();
-                        handled = false;
-                    } else {
-                        handled = true;
-                    }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if(s.toString().length()>0)
+                {
+                    int value = getResources().getInteger(R.integer.messages_max_chars_message);
+                    value = value - s.toString().length();
+                    tv_char_count.setText(value+" chars left");
+                    tv_char_count.setVisibility(View.VISIBLE);
                 }
-                return handled;
+                else
+                {
+                    tv_char_count.setVisibility(View.GONE);
+                }
             }
         });
 
@@ -292,6 +298,24 @@ public class MessagesActivity extends Activity {
             edt_duration.setText(prefs.getString("duration",""));
         }
 
+        ((ImageButton) findViewById(R.id.messages_info_btn)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new AlertDialog.Builder(context)
+                        .setTitle("Wall Information")
+                        .setMessage("In this wall you can leave messages for other users in the queue right now or in the future.\n\n" +
+                                "The duration the message will be visible for everyone in this queue can be set, so messages can seem to" +
+                                " disappear randomly.")
+                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        })
+                        .setIcon(R.drawable.ic_chat_black_48dp)
+                        .show();
+            }
+        });
+
     }
 
     private boolean verifyFields(boolean fromKeyboard)
@@ -386,7 +410,7 @@ public class MessagesActivity extends Activity {
             String jsonCategories = null;
 
             HttpClient client = new DefaultHttpClient();
-            String URL = getURL + "?venue_id="+params[0];
+            String URL = getMessagesURL + "?venue_id="+params[0];
 
             try
             {

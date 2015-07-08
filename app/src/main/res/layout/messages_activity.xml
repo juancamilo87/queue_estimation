@@ -4,16 +4,33 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_marginTop="10dp">
-
-    <TextView
-        android:id="@+id/messages_title"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_width="wrap_content"
+    <RelativeLayout
+        android:id="@+id/title_layout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/title_activity_messages"
-        android:layout_marginBottom="15dp"
-        android:textAppearance="@android:style/TextAppearance.Large"/>
+        android:layout_alignParentTop="true">
+        <TextView
+            android:id="@+id/messages_title"
+            android:layout_centerInParent="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/title_activity_messages"
+            android:layout_marginBottom="15dp"
+            android:textAppearance="@android:style/TextAppearance.Large"/>
+        <ImageButton
+            android:id="@+id/messages_info_btn"
+            android:layout_marginRight="15dp"
+            android:layout_marginEnd="15dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:background="@android:color/transparent"
+            android:src="@android:drawable/ic_menu_info_details"
+            android:tint="@color/secondary_text_default_material_light"/>
+    </RelativeLayout>
+
     <LinearLayout
         android:id="@+id/messages_bottom_container"
         android:layout_width="match_parent"
@@ -88,12 +105,15 @@
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_weight="1.5"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:orientation="vertical"
                         android:layout_marginRight="10dp">
                         <TextView
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:layout_gravity="center_vertical"
+                            android:gravity="center_vertical"
                             android:text="@string/messages_alias"/>
                         <EditText
                             android:id="@+id/messages_alias"
@@ -146,10 +166,27 @@
 
                 </LinearLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/messages_message"/>
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="@string/messages_message"/>
+                    <TextView
+                        android:id="@+id/message_char_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginRight="48dp"
+                        android:textColor="@color/light_gray"
+                        android:visibility="gone"
+                        />
+
+                </LinearLayout>
+
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -162,8 +199,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginRight="5dp"
                         android:maxLength="@integer/messages_max_chars_message"
-                        android:inputType="textCapSentences"
-                        android:imeOptions="actionSend"
+                        android:inputType="textShortMessage"
                         android:layout_gravity="center_vertical"
                         android:gravity="center_vertical"
                         />
@@ -182,7 +218,7 @@
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/messages_list"
-        android:layout_below="@id/messages_title"
+        android:layout_below="@id/title_layout"
         android:layout_above="@id/messages_bottom_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -193,7 +229,7 @@
     <ProgressBar
         android:visibility="gone"
         android:id="@+id/messages_empty"
-        android:layout_below="@id/messages_title"
+        android:layout_below="@id/title_layout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginRight="10dp"
@@ -204,7 +240,7 @@
     <TextView
         android:visibility="gone"
         android:id="@+id/messages_no_messages"
-        android:layout_below="@id/messages_title"
+        android:layout_below="@id/title_layout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"

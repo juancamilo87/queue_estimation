@@ -11,6 +11,7 @@ public class MyDBPlace {
     private LatLng latLng;
     private String id;
     private int waitTime;
+    private long last_update;
 
     public MyDBPlace(String name, LatLng latLng, String id) {
         this.name = name;
@@ -39,6 +40,18 @@ public class MyDBPlace {
             this.waitTime = 0;
         else
             this.waitTime = waitTime;
+    }
+
+    public long getLast_update() {
+        return last_update;
+    }
+
+    public void setLast_update(long last_update) {
+        this.last_update = last_update;
+    }
+
+    public void setLatLng(LatLng latLng) {
+        this.latLng = latLng;
     }
 
     @Override

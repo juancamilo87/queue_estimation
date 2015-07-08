@@ -8,17 +8,20 @@ import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.support.v4.app.NotificationCompat;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -33,11 +36,26 @@ import com.aware.Aware;
 import com.aware.Aware_Preferences;
 import com.aware.plugin.tracescollector.Provider;
 import com.aware.plugin.tracescollector.R;
+import com.aware.plugin.tracescollector.db.LocationDataSource;
+import com.aware.plugin.tracescollector.db.PlacesDataSource;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.android.gms.maps.MapView;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Set;
 
 
@@ -173,6 +191,28 @@ public class HomeScreen extends Activity {
                 startActivity(intent);
             }
         });
+
+        // Fixing Later Map loading Delay
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    MapView mv = new MapView(getApplicationContext());
+                    mv.onCreate(null);
+                    mv.onPause();
+                    mv.onDestroy();
+                }catch (Exception ignored){
+
+                }
+
+                LocationDataSource lds = new LocationDataSource(getApplicationContext());
+                lds.open();
+                lds.cleanDB();
+                PlacesDataSource pds = new PlacesDataSource(getApplicationContext());
+                pds.open();
+                pds.cleanDB();
+            }
+        }).start();
     }
 
 
@@ -223,10 +263,37 @@ public class HomeScreen extends Activity {
             sendData(EVENT_START);
             initializeButtons();
             showNotification(EVENT_START);
+            verifyMessages();
         }
 
         editor.putBoolean(PREF_QUEUING, queuing);
         editor.commit();
+    }
+
+    private void verifyMessages() {
+        new GetMessagesTask().execute(venueId);
+    }
+
+    private void showMessagesInQueueDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("New Messages")
+                .setMessage("Someone left messages for you.\n\nDo you want to see them?")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        Intent intent = new Intent(context, MessagesActivity.class);
+                        intent.putExtra("venue_id",venueId);
+                        intent.putExtra("message_posted", message_posted);
+                        startActivityForResult(intent, MESSAGES_WALL);
+                    }
+                })
+                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .setIcon(R.drawable.ic_chat_black_48dp)
+                .show();
     }
 
     private void getLocationForVenue()
@@ -496,4 +563,64 @@ public class HomeScreen extends Activity {
         super.onResume();
         initializeButtons();
     }
+
+    private class GetMessagesTask extends AsyncTask<String, Void, String> {
+
+        protected String doInBackground(String... params) {
+            String jsonCategories = null;
+
+            HttpClient client = new DefaultHttpClient();
+            String URL = MessagesActivity.getMessagesURL + "?venue_id="+params[0];
+
+            try
+            {
+                // Create Request to server and get response
+                StringBuilder builder = new StringBuilder();
+                HttpGet httpGet = new HttpGet(URL);
+
+                HttpResponse response = client.execute(httpGet);
+                StatusLine statusLine = response.getStatusLine();
+                int statusCode = statusLine.getStatusCode();
+                if (statusCode == 200) {
+                    HttpEntity entity = response.getEntity();
+                    InputStream content = entity.getContent();
+                    BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(content));
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        builder.append(line);
+                    }
+                    Log.v("Getter", "Your data: " + builder.toString());
+                    jsonCategories = builder.toString();
+                } else {
+                    Log.e("Getter", "Failed to download file");
+                }
+            }
+            catch(Exception ex)
+            {
+                Log.e("Getter", "Failed"); //response data
+            }
+
+
+            return jsonCategories;
+        }
+
+        protected void onPostExecute(String result) {
+            try {
+                result = "{array:" + result + "}";
+                Log.d("Messages", result);
+                JSONObject jObject = new JSONObject(result);
+                JSONArray jArray = jObject.getJSONArray("array");
+
+                if (jArray.length() > 0) {
+                    showMessagesInQueueDialog();
+                }
+            }catch(Exception e)
+            {
+
+            }
+        }
+    }
+
+
 }

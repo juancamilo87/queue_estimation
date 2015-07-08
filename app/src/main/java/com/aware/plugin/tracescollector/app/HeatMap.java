@@ -1,9 +1,18 @@
 package com.aware.plugin.tracescollector.app;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.LightingColorFilter;
+import android.graphics.Paint;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -13,6 +22,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.SyncStateContract;
 import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
@@ -29,6 +39,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -72,8 +83,12 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
 
     private static final long MIN_TIME = 400;
     private static final float MIN_DISTANCE = 1000;
+    private static final float COORDINATE_OFFSET = 0.00002f;
     // Request code to use when launching the resolution activity
     private static final int REQUEST_RESOLVE_ERROR = 1001;
+
+    private static final double MAX_VALUE_QUEUE = 40;
+    private static final double MAX_VALUE_MILLISECONDS = 3600000;
     // Unique tag for the error dialog fragment
     private static final String DIALOG_ERROR = "dialog_error";
     // Bool to track whether the app is already resolving an error
@@ -101,20 +116,25 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
 
     private HashMap<String, Marker> markerHashMap;
 
-    private HashMap<String,Integer> waitTimes;
+    private HashMap<String,Object[]> waitTimes;
     private HashMap<Marker, MyDBPlace> markerPlaceHash;
+    private HashMap<String, Marker> locationMarkerHash;
 
     private LocationManager locationManager;
+
+    private Context context;
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        context = this;
         busy = false;
         waitTimes = new HashMap<>();
         markerPlaceHash = new HashMap<>();
         allMarkers = new ArrayList<>();
         markerHashMap = new HashMap<>();
+        locationMarkerHash = new HashMap<>();
         mResolvingError = savedInstanceState != null && savedInstanceState.getBoolean(STATE_RESOLVING_ERROR, false);
         setContentView(R.layout.activity_heat_map);
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -132,10 +152,24 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                 .addOnConnectionFailedListener(this)
                 .build();
 
-        ((ImageButton)findViewById(R.id.test_btn)).setOnClickListener(new View.OnClickListener() {
+        ((ImageButton)findViewById(R.id.map_info_btn)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //TODO test
+                new AlertDialog.Builder(context)
+                        .setTitle("Map Information")
+                        .setMessage("The map displays a heatmap where red represents longer waiting lines" +
+                                ", green short waiting lines and no color if we don't have information.\n\n" +
+                                "Zoom in to view the markers for each place. The marker color indicates how long is the waiting time " +
+                                "and the color of the base of the marker indicates how new is the information (green: recent, red: not recent," +
+                                " gray: very old)\n\n" +
+                                "Click on a marker to see the name and expected waiting time.")
+                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        })
+                        .setIcon(R.drawable.ic_chat_black_48dp)
+                        .show();
             }
         });
 
@@ -155,7 +189,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                Log.d("Marker","Place Id: "+markerPlaceHash.get(marker).getId());
+                Log.d("Marker", "Place Id: " + markerPlaceHash.get(marker).getId());
                 new WaitTimeOneTask().execute(markerPlaceHash.get(marker));
                 return false;
             }
@@ -262,22 +296,38 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         for(int i = 0; i<allPlaces.size();i++)
         {
             MyDBPlace place = allPlaces.get(i);
-            place.setWaitTime(waitTimes.get(place.getId()));
+            place.setWaitTime((Integer)waitTimes.get(place.getId())[0]);
+            place.setLast_update((long)waitTimes.get(place.getId())[1]);
             latLngList.add(new WeightedLatLng(place.getLatLng(), place.getWaitTime()));
             if(!markerHashMap.containsKey(place.getId()))
             {
+                String snippet;
+                if(place.getWaitTime()>0)
+                    snippet = "Waiting time: "+place.getWaitTime()+"min";
+                else
+                    snippet = "Waiting time: Unknown";
+                LatLng newLocation = getNewLocation(place.getLatLng().latitude,place.getLatLng().longitude);
                 Marker marker = map.addMarker(new MarkerOptions()
-                        .position(place.getLatLng())
+                        .position(newLocation)
                         .title(place.getName())
-                        .snippet("Waiting time: "+place.getWaitTime()+"min")
-                        .visible(map.getCameraPosition().zoom>ZOOM_THRESHOLD));
+                        .snippet(snippet)
+                        .visible(map.getCameraPosition().zoom > ZOOM_THRESHOLD)
+                        .icon(BitmapDescriptorFactory.fromBitmap(createMarker(place)))
+                        .anchor(0.5f, 0.9f));
+                place.setLatLng(newLocation);
                 allMarkers.add(marker);
                 markerHashMap.put(place.getId(), marker);
                 markerPlaceHash.put(marker,place);
+                locationMarkerHash.put(newLocation.latitude+","+newLocation.longitude,marker);
             }
             else
             {
-                markerHashMap.get(place.getId()).setSnippet("Waiting time: "+place.getWaitTime()+"min");
+                String snippet;
+                if(place.getWaitTime()>0)
+                    snippet = "Waiting time: "+place.getWaitTime()+"min";
+                else
+                    snippet = "Waiting time: Unknown";
+                markerHashMap.get(place.getId()).setSnippet(snippet);
             }
         }
 
@@ -312,7 +362,8 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                     for(int i = 0; i<allPlaces.size();i++)
                     {
                         MyDBPlace place = allPlaces.get(i);
-                        place.setWaitTime(waitTimes.get(place.getId()));
+                        place.setWaitTime((Integer)waitTimes.get(place.getId())[0]);
+                        place.setLast_update((long)waitTimes.get(place.getId())[1]);
                         latLngList.add(new WeightedLatLng(place.getLatLng(),place.getWaitTime()));
                     }
 
@@ -329,18 +380,33 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                                     MyDBPlace place = allPlaces.get(i);
                                     if(!markerHashMap.containsKey(place.getId()))
                                     {
+                                        String snippet;
+                                        if(place.getWaitTime()>0)
+                                            snippet = "Waiting time: "+place.getWaitTime()+"min";
+                                        else
+                                            snippet = "Waiting time: Unknown";
+                                        LatLng newLocation = getNewLocation(place.getLatLng().latitude,place.getLatLng().longitude);
                                         Marker marker = map.addMarker(new MarkerOptions()
-                                                .position(place.getLatLng())
+                                                .position(newLocation)
                                                 .title(place.getName())
-                                                .snippet("Waiting time: "+place.getWaitTime()+"min")
-                                                .visible(map.getCameraPosition().zoom>ZOOM_THRESHOLD));
+                                                .snippet(snippet)
+                                                .visible(map.getCameraPosition().zoom > ZOOM_THRESHOLD)
+                                                .icon(BitmapDescriptorFactory.fromBitmap(createMarker(place)))
+                                                .anchor(0.5f, 0.9f));
+                                        place.setLatLng(newLocation);
                                         allMarkers.add(marker);
-                                        markerHashMap.put(place.getId(),marker);
+                                        markerHashMap.put(place.getId(), marker);
                                         markerPlaceHash.put(marker,place);
+                                        locationMarkerHash.put(newLocation.latitude+","+newLocation.longitude,marker);
                                     }
                                     else
                                     {
-                                        markerHashMap.get(place.getId()).setSnippet("Waiting time: "+place.getWaitTime()+"min");
+                                        String snippet;
+                                        if(place.getWaitTime()>0)
+                                            snippet = "Waiting time: "+place.getWaitTime()+"min";
+                                        else
+                                            snippet = "Waiting time: Unknown";
+                                        markerHashMap.get(place.getId()).setSnippet(snippet);
                                     }
                                 }
                             }
@@ -358,11 +424,55 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         int index = allPlaces.indexOf(parameterPlace);
         if(index>=0)
         {
-            allPlaces.get(index).setWaitTime(waitTimes.get(allPlaces.get(index).getId()));
+            allPlaces.get(index).setWaitTime((Integer)waitTimes.get(allPlaces.get(index).getId())[0]);
+            allPlaces.get(index).setLast_update((long)waitTimes.get(allPlaces.get(index).getId())[1]);
         }
+        String snippet;
+        if(parameterPlace.getWaitTime()>0)
+            snippet = "Waiting time: "+parameterPlace.getWaitTime()+"min";
+        else
+            snippet = "Waiting time: Unknown";
 
-        markerHashMap.get(parameterPlace.getId()).setSnippet("Waiting time: "+parameterPlace.getWaitTime()+"min");
-        markerHashMap.get(parameterPlace.getId()).showInfoWindow();
+        boolean shown = false;
+        if(markerHashMap.get(parameterPlace.getId()).isInfoWindowShown())
+            shown = true;
+
+        markerHashMap.get(parameterPlace.getId()).remove();
+        allMarkers.remove(markerHashMap.get(parameterPlace.getId()));
+        markerPlaceHash.remove(markerHashMap.get(parameterPlace.getId()));
+        markerHashMap.remove(parameterPlace.getId());
+
+        Marker marker = map.addMarker(new MarkerOptions()
+                .position(parameterPlace.getLatLng())
+                .title(parameterPlace.getName())
+                .snippet(snippet)
+                .visible(map.getCameraPosition().zoom > ZOOM_THRESHOLD)
+                .icon(BitmapDescriptorFactory.fromBitmap(createMarker(parameterPlace)))
+                .anchor(0.5f, 0.9f));
+        allMarkers.add(marker);
+        markerHashMap.put(parameterPlace.getId(), marker);
+        markerPlaceHash.put(marker,parameterPlace);
+        locationMarkerHash.put(parameterPlace.getLatLng().latitude+","+parameterPlace.getLatLng().longitude,marker);
+
+        if(shown)
+        {
+            marker.showInfoWindow();
+        }
+//        markerHashMap.get(parameterPlace.getId()).setSnippet(snippet);
+//        markerHashMap.get(parameterPlace.getId()).setIcon(BitmapDescriptorFactory.fromBitmap(createMarker(parameterPlace)));
+//        if(markerHashMap.get(parameterPlace.getId()).isInfoWindowShown())
+//            markerHashMap.get(parameterPlace.getId()).showInfoWindow();
+    }
+
+    private LatLng getNewLocation(double latitude, double longitude)
+    {
+        if(locationMarkerHash.containsKey(latitude+","+longitude))
+        {
+            latitude = latitude + 1 * COORDINATE_OFFSET;
+            longitude = longitude + 1 * COORDINATE_OFFSET;
+            return getNewLocation(latitude, longitude);
+        }
+        return new LatLng(latitude,longitude);
     }
 
 
@@ -461,6 +571,61 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         new GetPlacesTask(latLng).execute();
 
 
+    }
+
+    private Bitmap createMarker(MyDBPlace place)
+    {
+        int waitTime = place.getWaitTime();
+        float timeSinceUpdate = ((float) System.currentTimeMillis() - (float) place.getLast_update());
+        if(timeSinceUpdate>259200000)
+            timeSinceUpdate = -1;
+        Bitmap bottom_circle = drawableToBitmap(getResources().getDrawable(R.drawable.bottom_circle));
+        Paint bottom_circle_paint = new Paint();
+        ColorFilter bottom_circle_filter = new LightingColorFilter(getColor(timeSinceUpdate, MAX_VALUE_MILLISECONDS), 0);
+        bottom_circle_paint.setColorFilter(bottom_circle_filter);
+
+        Bitmap marker = BitmapFactory.decodeResource(getResources(), R.drawable.map_marker_hi2);
+
+        Paint marker_paint = new Paint();
+        ColorFilter marker_filter = new LightingColorFilter(getColor(waitTime, MAX_VALUE_QUEUE), 0);
+        marker_paint.setColorFilter(marker_filter);
+
+        Bitmap big = Bitmap.createBitmap(marker.getWidth(), bottom_circle.getHeight() / 2 + marker.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(big);
+        canvas.drawBitmap(bottom_circle, (marker.getWidth() - bottom_circle.getWidth())/2, marker.getHeight()-bottom_circle.getHeight()/2, bottom_circle_paint);
+        canvas.drawBitmap(marker, 0, 0, marker_paint);
+
+        return big;
+    }
+
+    private static Bitmap drawableToBitmap (Drawable drawable) {
+
+        if (drawable instanceof BitmapDrawable) {
+            return ((BitmapDrawable)drawable).getBitmap();
+        }
+
+        Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawable.draw(canvas);
+
+        return bitmap;
+    }
+
+    private static int getColor(double value, double max) {
+        double theValue = 1 - Math.max(Math.min(value/max,1),0);
+        float color[] = new float[3];
+        if((value == 0 && max == MAX_VALUE_QUEUE)||value == -1)
+        {
+            return Color.LTGRAY;
+        }
+        else
+        {
+            color[0] = ((float) (theValue * 0.3))*360; // Hue (note 0.4 = Green, see huge chart below)
+            color[1] = (float) 0.9; // Saturation
+            color[2] = (float) 0.9; // Brightness
+            return Color.HSVToColor(color);
+        }
     }
 
     @Override
@@ -699,43 +864,12 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         }
     }
 
-    private void test() {
-        Log.d("T","Start");
-        int[] colors = {
-                Color.rgb(102, 0, 255), // green
-                Color.rgb(255, 0, 0)    // red
-        };
-        float[] startPoints = {
-                0.2f, 1f
-        };
-        Gradient gradient = new Gradient(colors, startPoints);
-        // Create the tile provider.
-        if (latLngList.size() > 0) {
-            Log.d("T","More than 0");
-            if (heatmapTileProvider != null) {
-                Log.d("T", "not null");
-                heatmapTileProvider.setWeightedData(latLngList);
-                tileOverlay.clearTileCache();
-
-            } else {
-                Log.d("T", "null");
-                heatmapTileProvider = new HeatmapTileProvider.Builder()
-                        .weightedData(latLngList)
-                        .gradient(gradient)
-                        .build();
-                heatmapTileProvider.setRadius(50);
-                tileOverlay = map.addTileOverlay(new TileOverlayOptions().tileProvider(heatmapTileProvider));
-                Log.d("Is Null", "True");
-            }
-        }
-    }
-
-    private class WaitTimeTask extends AsyncTask<Void, Void, HashMap<String,Integer>>
+    private class WaitTimeTask extends AsyncTask<Void, Void, HashMap<String,Object[]>>
     {
 
         @Override
-        protected HashMap<String,Integer> doInBackground(Void... params) {
-            HashMap<String,Integer> result = new HashMap<>();
+        protected HashMap<String,Object[]> doInBackground(Void... params) {
+            HashMap<String,Object[]> result = new HashMap<>();
             try
             {
                 JSONArray jsonArray = new JSONArray();
@@ -778,10 +912,13 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                         if(jArray.getJSONObject(i).getString("place_id")!=null)
                         {
                             result.put(jArray.getJSONObject(i).getString("place_id"),
-                                    Integer.parseInt(jArray.getJSONObject(i).getString("wait_time")));
+                                    new Object[] {Integer.parseInt(jArray.getJSONObject(i).getString("wait_time")),
+                                            Long.parseLong(jArray.getJSONObject(i).getString("last_update"))}
+                                    );
                         }
 
                     }
+                    int data[] = new int[] {1,4,5};
                     Log.d("Hash",result.toString());
                 }
 
@@ -796,7 +933,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         }
 
         @Override
-        protected void onPostExecute(HashMap<String, Integer> stringIntegerHashMap) {
+        protected void onPostExecute(HashMap<String, Object[]> stringIntegerHashMap) {
             if(stringIntegerHashMap != null)
             {
                 waitTimes = stringIntegerHashMap;
@@ -855,6 +992,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                         {
                             result.add(jArray.getJSONObject(i).getString("place_id"));
                             result.add(Integer.parseInt(jArray.getJSONObject(i).getString("wait_time")));
+                            result.add(Long.parseLong(jArray.getJSONObject(i).getString("last_update")));
                         }
 
                     }
@@ -875,8 +1013,9 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         protected void onPostExecute(ArrayList<Object> objectArrayList) {
             if(objectArrayList != null)
             {
-                waitTimes.put((String) objectArrayList.get(0),(Integer) objectArrayList.get(1));
-                place.setWaitTime((Integer)objectArrayList.get(1));
+                waitTimes.put((String) objectArrayList.get(0),new Object[] {(Integer) objectArrayList.get(1),(Long)objectArrayList.get(2)});
+                place.setWaitTime((Integer) objectArrayList.get(1));
+                place.setLast_update((Long)objectArrayList.get(2));
                 refreshMarker(place);
             }
         }

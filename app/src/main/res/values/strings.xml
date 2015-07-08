@@ -16,7 +16,7 @@
     <string name="messages_create_message">Post a message</string>
     <string name="messages_alias">Alias</string>
     <string name="messages_message">Message</string>
-    <string name="messages_duration">Duration</string>
+    <string name="messages_duration">Message will disappear in:</string>
     <string name="messages_minutes">minutes</string>
     <string name="messages_send_button">Post Message</string>
     <string name="home_messages_wall_btn">Messages Wall</string>

@@ -57,7 +57,7 @@ public class LocationDataSource {
 
     public void cleanDB() {
 
-        long min_timestamp = System.currentTimeMillis()-MySQLiteHelper.DAYS_LIMIT_IN_MILLIS;
+        long min_timestamp = System.currentTimeMillis()-MySQLiteHelper.DAYS_LIMIT_IN_MILLIS_SEARCH;
 
         Cursor cursor = database.query(MySQLiteHelper.TABLE_SEARCH_LOCATION,
                 allColumns, MySQLiteHelper.COLUMN_SEARCH_LOCATION_TIMESTAMP + " < " + min_timestamp, null,

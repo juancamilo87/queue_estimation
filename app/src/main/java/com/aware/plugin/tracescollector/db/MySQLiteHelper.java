@@ -15,6 +15,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 9;
 
     public static final long DAYS_LIMIT_IN_MILLIS = 2592000000L;
+    public static final long DAYS_LIMIT_IN_MILLIS_SEARCH = 259200000L;
 
     public static final String TABLE_SEARCH_LOCATION = "search_locations";
     public static final String COLUMN_SEARCH_LOCATION_ID = "_id";
