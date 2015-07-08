@@ -49,7 +49,12 @@ import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.AbstractHttpEntity;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.protocol.HTTP;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -81,6 +86,8 @@ public class HomeScreen extends Activity {
     static final int PICK_VENUE_REQUEST = 1;  // The request code
     static final int MESSAGES_WALL = 2;  // The request code
     static final int PLACE_PICKER_REQUEST = 3;
+
+    private static final String POST_TRACE_URL = "http://pan0166.panoulu.net/queue_estimation/post_trace.php";
 
     private Context context;
 
@@ -541,6 +548,8 @@ public class HomeScreen extends Activity {
         data.put(Provider.TracesCollector_Data.TAG_3, "");
 
         context.getContentResolver().insert(Provider.TracesCollector_Data.CONTENT_URI, data);
+        new UploadTraceTask(Aware.getSetting(context.getApplicationContext(), Aware_Preferences.DEVICE_ID),
+                venueId, event, "").execute();
     }
 
     private void enableUI()
@@ -619,6 +628,69 @@ public class HomeScreen extends Activity {
             {
 
             }
+        }
+    }
+
+    private static class UploadTraceTask extends AsyncTask<Void, Void, Void>
+    {
+        private String devideId;
+        private String venueId;
+        private String event;
+        private String other;
+
+        public UploadTraceTask(String devideId, String venueId, String event, String other) {
+            this.devideId = devideId;
+            this.venueId = venueId;
+            this.event = event;
+            this.other = other;
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+
+            JSONObject json = new JSONObject();
+            try
+            {
+                json.put("device_id", devideId);
+                json.put("tag_1", venueId);
+                json.put("tag_2", event);
+                json.put("tag_3", other);
+
+                Log.d("JSON Order", json.toString());
+            }
+            catch(Exception e)
+            {
+                Log.e("Error creating JSON", "JSON could not be created");
+                Log.e("Error Trace post",e.getMessage());
+            }
+
+            String URL = POST_TRACE_URL;
+            HttpClient client = new DefaultHttpClient();
+            HttpPost request = new HttpPost(URL);
+
+            try
+            {
+                AbstractHttpEntity entity = new ByteArrayEntity(json.toString().getBytes("UTF8"));
+                entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
+                request.setEntity(entity);
+                HttpResponse response = client.execute(request);
+
+                StatusLine statusLine = response.getStatusLine();
+                int statusCode = statusLine.getStatusCode();
+                if (statusCode == 200) {
+                    Log.d("Traces","Uploaded");
+                }
+                else
+                {
+                    Log.d("Traces","Error uploading");
+                }
+            }
+            catch(Exception e)
+            {
+                Log.e("Error posting traces", "HttpPost failed");
+                Log.e("Error Trace post",e.getMessage());
+            }
+            return null;
         }
     }
 
