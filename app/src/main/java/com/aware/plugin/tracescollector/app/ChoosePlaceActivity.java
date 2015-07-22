@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.util.Log;
@@ -22,12 +23,14 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.places.AddPlaceRequest;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceFilter;
 import com.google.android.gms.location.places.PlaceLikelihood;
 import com.google.android.gms.location.places.PlaceLikelihoodBuffer;
 import com.google.android.gms.location.places.PlaceReport;
 import com.google.android.gms.location.places.Places;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -227,7 +230,7 @@ public class ChoosePlaceActivity extends Activity implements GoogleApiClient.Con
                             placeTypes.contains(Place.TYPE_NIGHT_CLUB)||
                             placeTypes.contains(Place.TYPE_RESTAURANT)||
                             newPlace.getPlace().getName().toString().toLowerCase().contains("ravintola")||
-                            newPlace.getPlace().getName().toString().toLowerCase().contains("ravintolat"))
+                            newPlace.getPlace().getName().toString().toLowerCase().contains("restaurant"))
                     {
                         places.add(new MyPlace(newPlace.getPlace()));
                     }
@@ -235,6 +238,10 @@ public class ChoosePlaceActivity extends Activity implements GoogleApiClient.Con
                 if(places.size() == 0)
                 {
                     findViewById(R.id.no_places).setVisibility(View.VISIBLE);
+                }
+                else
+                {
+                    places.add(new MyPlace(new OtherPlace()));
                 }
                 listAdapter.notifyDataSetChanged();
                 likelyPlaces.release();

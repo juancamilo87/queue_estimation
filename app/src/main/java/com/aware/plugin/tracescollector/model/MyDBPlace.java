@@ -10,7 +10,7 @@ public class MyDBPlace {
     private String name;
     private LatLng latLng;
     private String id;
-    private int waitTime;
+    private double waitTime;
     private long last_update;
 
     public MyDBPlace(String name, LatLng latLng, String id) {
@@ -31,11 +31,11 @@ public class MyDBPlace {
         return id;
     }
 
-    public int getWaitTime() {
+    public double getWaitTime() {
         return waitTime;
     }
 
-    public void setWaitTime(Integer waitTime) {
+    public void setWaitTime(Double waitTime) {
         if(waitTime == null)
             this.waitTime = 0;
         else

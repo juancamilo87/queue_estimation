@@ -33,6 +33,7 @@ import com.aware.plugin.tracescollector.db.PlacesDataSource;
 import com.aware.plugin.tracescollector.model.MyDBPlace;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -100,8 +101,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
 
     private GoogleApiClient mGoogleApiClient;
 
-    private static final double MAX_DISTANCE = 50;
-    private static final double MAX_RADIUS = 50;
+    private static final double MAX_DISTANCE = 25;
 
     private ArrayList<MyDBPlace> allPlaces;
     private ArrayList<Marker> allMarkers;
@@ -293,10 +293,10 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         latLngList.clear();
 
         // Get the data: latitude/longitude positions of police stations.
-        for(int i = 0; i<allPlaces.size();i++)
+        for(int i = 0; i < allPlaces.size()&& waitTimes.size() > 0;i++)
         {
             MyDBPlace place = allPlaces.get(i);
-            place.setWaitTime((Integer)waitTimes.get(place.getId())[0]);
+            place.setWaitTime((Double)waitTimes.get(place.getId())[0]);
             place.setLast_update((long)waitTimes.get(place.getId())[1]);
             latLngList.add(new WeightedLatLng(place.getLatLng(), place.getWaitTime()));
             if(!markerHashMap.containsKey(place.getId()))
@@ -362,7 +362,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                     for(int i = 0; i<allPlaces.size();i++)
                     {
                         MyDBPlace place = allPlaces.get(i);
-                        place.setWaitTime((Integer)waitTimes.get(place.getId())[0]);
+                        place.setWaitTime((Double)waitTimes.get(place.getId())[0]);
                         place.setLast_update((long)waitTimes.get(place.getId())[1]);
                         latLngList.add(new WeightedLatLng(place.getLatLng(),place.getWaitTime()));
                     }
@@ -424,7 +424,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         int index = allPlaces.indexOf(parameterPlace);
         if(index>=0)
         {
-            allPlaces.get(index).setWaitTime((Integer)waitTimes.get(allPlaces.get(index).getId())[0]);
+            allPlaces.get(index).setWaitTime((Double)waitTimes.get(allPlaces.get(index).getId())[0]);
             allPlaces.get(index).setLast_update((long)waitTimes.get(allPlaces.get(index).getId())[1]);
         }
         String snippet;
@@ -567,15 +567,13 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
 
 
     private void guessCurrentPlace(LatLng latLng) {
-
-        new GetPlacesTask(latLng).execute();
-
-
+        String[] keywords = {"bakery", "bar", "cafe", "night_club", "restaurant", "ravintola"};
+        new GetPlacesTask(latLng, keywords).execute();
     }
 
     private Bitmap createMarker(MyDBPlace place)
     {
-        int waitTime = place.getWaitTime();
+        double waitTime = place.getWaitTime();
         float timeSinceUpdate = ((float) System.currentTimeMillis() - (float) place.getLast_update());
         if(timeSinceUpdate>259200000)
             timeSinceUpdate = -1;
@@ -658,157 +656,156 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
     {
 
         private LatLng latLng;
+        private String[] keyword;
 
-        public GetPlacesTask(LatLng latLng)
+        public GetPlacesTask(LatLng latLng, String[] keyword)
         {
             busy = true;
             Log.d("Boolean",busy+"");
             this.latLng = latLng;
+            this.keyword = keyword;
         }
 
         @Override
         protected Boolean doInBackground(Void... params) {
             boolean answer = true;
-            String result[] = new String[3];
+            String result[] = new String[keyword.length*3];
             String jsonResponse = null;
 
             HttpClient client = new DefaultHttpClient();
-            String URL = "https://maps.googleapis.com/maps/api/place/search/json?";
+            String theURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
 
-            URL += "key=AIzaSyDeS7X-VKQjeKHb4o2mBUSDQZjCx9GflIo";
-            URL += "&location="+latLng.latitude+","+latLng.longitude;
-            URL += "&radius="+MAX_RADIUS;
-            URL += "&keyword=";
-            URL += "bakery";
-            URL += "%7C";
-            URL += "bar";
-            URL += "%7C";
-            URL += "cafe";
-            URL += "%7C";
-            URL += "night_club";
-            URL += "%7C";
-            URL += "restaurant";
-            URL += "%7C";
-            URL += "ravintola";
-            Log.d("URL",URL);
-            try
+            theURL += "key=AIzaSyDeS7X-VKQjeKHb4o2mBUSDQZjCx9GflIo";
+            theURL += "&location="+latLng.latitude+","+latLng.longitude;
+            theURL += "&rankby=distance";
+            int index = 0;
+            for(int s = 0; s<keyword.length;s++)
             {
-                Log.d("Task","0");
-                // Create Request to server and get response
-                StringBuilder builder = new StringBuilder();
-                Log.d("Task","0.1");
-                HttpGet httpGet = new HttpGet(URL);
-                Log.d("Task","0.2");
-                HttpResponse response = client.execute(httpGet);
-                Log.d("Task","1");
-                StatusLine statusLine = response.getStatusLine();
-                int statusCode = statusLine.getStatusCode();
-                if (statusCode == 200) {
-                    Log.d("Task","2");
-                    HttpEntity entity = response.getEntity();
-                    InputStream content = entity.getContent();
-                    BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(content));
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        builder.append(line);
-                    }
-                    Log.d("Task","3");
-                    Log.v("Getter", "Your data: " + builder.toString());
-                    jsonResponse = builder.toString();
-                    result[0] = jsonResponse;
-                    JSONObject jObject = new JSONObject(jsonResponse);
-                    try
-                    {
-                        Log.d("Task","4");
-                        String token = jObject.getString("next_page_token");
-                        String newURL = URL + "&pagetoken="+token;
-                        httpGet = new HttpGet(newURL);
-                        Log.d("Task","5");
-                        Thread.sleep(500);
-                        Log.d("Task","6");
-                        response = client.execute(httpGet);
-                        Log.d("Task","7");
-                        statusLine = response.getStatusLine();
-                        statusCode = statusLine.getStatusCode();
-                        if (statusCode == 200) {
-                            Log.d("Task","8");
-                            entity = response.getEntity();
-                            content = entity.getContent();
-                            reader = new BufferedReader(
-                                    new InputStreamReader(content));
-                            builder = new StringBuilder();
-                            while ((line = reader.readLine()) != null) {
-                                builder.append(line);
-                            }
-                            Log.d("Task","9");
-                            Log.v("Getter", "Your data: " + builder.toString());
-                            jsonResponse = builder.toString().split("divider")[0];
-                            result[1] = jsonResponse;
-                            jObject = new JSONObject(jsonResponse);
-                            try
-                            {
-                                Log.d("Task","10");
-                                token = jObject.getString("next_page_token");
-                                newURL = URL + "&pagetoken="+token;
-                                httpGet = new HttpGet(newURL);
-                                Log.d("Task","11");
-                                Thread.sleep(500);
-                                Log.d("Task", "12");
-                                response = client.execute(httpGet);
-                                Log.d("Task","13");
-                                statusLine = response.getStatusLine();
-                                statusCode = statusLine.getStatusCode();
-                                if (statusCode == 200) {
-                                    Log.d("Task","14");
-                                    entity = response.getEntity();
-                                    content = entity.getContent();
-                                    reader = new BufferedReader(
-                                            new InputStreamReader(content));
-                                    builder = new StringBuilder();
-                                    while ((line = reader.readLine()) != null) {
-                                        builder.append(line);
-                                    }
-                                    Log.d("Task","15");
-                                    Log.v("Getter", "Your data: " + builder.toString());
-                                    jsonResponse = builder.toString().split("divider")[0];
-                                    result[2] = jsonResponse;
-
-                                } else {
-                                    Log.e("Getter", "Failed to get 41-60 places");
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                Log.e("Task",e.toString());
-                                Log.d("Task", "16");
-                            }
-
-
-                        } else {
-                            Log.e("Getter", "Failed to get 21-40 places");
+                String URL = theURL + "&keyword="+keyword[s];
+                Log.d("URL",URL);
+                try
+                {
+                    Log.d("Task","0");
+                    // Create Request to server and get response
+                    StringBuilder builder = new StringBuilder();
+                    Log.d("Task","0.1");
+                    HttpGet httpGet = new HttpGet(URL);
+                    Log.d("Task","0.2");
+                    HttpResponse response = client.execute(httpGet);
+                    Log.d("Task","1");
+                    StatusLine statusLine = response.getStatusLine();
+                    int statusCode = statusLine.getStatusCode();
+                    if (statusCode == 200) {
+                        Log.d("Task","2");
+                        HttpEntity entity = response.getEntity();
+                        InputStream content = entity.getContent();
+                        BufferedReader reader = new BufferedReader(
+                                new InputStreamReader(content));
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            builder.append(line);
                         }
-                    }
-                    catch (Exception e)
-                    {
-                        Log.d("Task",e.toString());
-                        Log.d("Task","17");
-                    }
+                        Log.d("Task","3");
+                        Log.v("Getter", "Your data: " + builder.toString());
+                        jsonResponse = builder.toString();
+                        result[index] = jsonResponse;
+                        index++;
+                        JSONObject jObject = new JSONObject(jsonResponse);
+                        try
+                        {
+                            Log.d("Task","4");
+                            String token = jObject.getString("next_page_token");
+                            String newURL = URL + "&pagetoken="+token;
+                            httpGet = new HttpGet(newURL);
+                            Log.d("Task","5");
+                            Thread.sleep(500);
+                            Log.d("Task","6");
+                            response = client.execute(httpGet);
+                            Log.d("Task","7");
+                            statusLine = response.getStatusLine();
+                            statusCode = statusLine.getStatusCode();
+                            if (statusCode == 200) {
+                                Log.d("Task","8");
+                                entity = response.getEntity();
+                                content = entity.getContent();
+                                reader = new BufferedReader(
+                                        new InputStreamReader(content));
+                                builder = new StringBuilder();
+                                while ((line = reader.readLine()) != null) {
+                                    builder.append(line);
+                                }
+                                Log.d("Task","9");
+                                Log.v("Getter", "Your data: " + builder.toString());
+                                jsonResponse = builder.toString().split("divider")[0];
+                                result[index] = jsonResponse;
+                                index++;
+                                jObject = new JSONObject(jsonResponse);
+                                try
+                                {
+                                    Log.d("Task","10");
+                                    token = jObject.getString("next_page_token");
+                                    newURL = URL + "&pagetoken="+token;
+                                    httpGet = new HttpGet(newURL);
+                                    Log.d("Task","11");
+                                    Thread.sleep(500);
+                                    Log.d("Task", "12");
+                                    response = client.execute(httpGet);
+                                    Log.d("Task","13");
+                                    statusLine = response.getStatusLine();
+                                    statusCode = statusLine.getStatusCode();
+                                    if (statusCode == 200) {
+                                        Log.d("Task","14");
+                                        entity = response.getEntity();
+                                        content = entity.getContent();
+                                        reader = new BufferedReader(
+                                                new InputStreamReader(content));
+                                        builder = new StringBuilder();
+                                        while ((line = reader.readLine()) != null) {
+                                            builder.append(line);
+                                        }
+                                        Log.d("Task","15");
+                                        Log.v("Getter", "Your data: " + builder.toString());
+                                        jsonResponse = builder.toString().split("divider")[0];
+                                        result[index] = jsonResponse;
+                                        index++;
+
+                                    } else {
+                                        Log.e("Getter", "Failed to get 41-60 places");
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    Log.e("Task",e.toString());
+                                    Log.d("Task", "16");
+                                }
 
 
-                } else {
-                    Log.e("Getter", "Failed to get 1-20 places");
+                            } else {
+                                Log.e("Getter", "Failed to get 21-40 places");
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Log.d("Task",e.toString());
+                            Log.d("Task","17");
+                        }
+
+
+                    } else {
+                        Log.e("Getter", "Failed to get 1-20 places");
+                        answer = false;
+                        return answer;
+                    }
+                }
+                catch(Exception ex)
+                {
                     answer = false;
+                    Log.e("Getter", "Failed"); //response data
+                    Log.e("Getter",ex.toString());
                     return answer;
                 }
             }
-            catch(Exception ex)
-            {
-                answer = false;
-                Log.e("Getter", "Failed"); //response data
-                Log.e("Getter",ex.toString());
-                return answer;
-            }
+
 
 
             JSONObject jObject;
@@ -829,11 +826,22 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                             JSONObject jsonPlace = jsonArray.getJSONObject(j);
                             String place_id = jsonPlace.getString("place_id");
                             String name = jsonPlace.getString("name");
-                            double latitude = jsonPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lat");
-                            double longitude = jsonPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lng");
+                            JSONArray typesArray = jsonPlace.getJSONArray("types");
+                            Log.d(name,typesArray.toString());
+                            if(typesArray.toString().toLowerCase().contains("bakery")||
+                                    typesArray.toString().toLowerCase().contains("bar")||
+                                    typesArray.toString().toLowerCase().contains("cafe")||
+                                    typesArray.toString().toLowerCase().contains("night_club")||
+                                    typesArray.toString().toLowerCase().contains("restaurant")||
+                                    name.toLowerCase().contains("restaurant")||
+                                    name.toLowerCase().contains("ravintola"))
+                            {
+                                double latitude = jsonPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lat");
+                                double longitude = jsonPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lng");
 
-                            MyDBPlace place = new MyDBPlace(name,new LatLng(latitude,longitude),place_id);
-                            store(place);
+                                MyDBPlace place = new MyDBPlace(name,new LatLng(latitude,longitude),place_id);
+                                store(place);
+                            }
                         }
                     }
                     catch(Exception e)
@@ -912,7 +920,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                         if(jArray.getJSONObject(i).getString("place_id")!=null)
                         {
                             result.put(jArray.getJSONObject(i).getString("place_id"),
-                                    new Object[] {Integer.parseInt(jArray.getJSONObject(i).getString("wait_time")),
+                                    new Object[] {Double.parseDouble(jArray.getJSONObject(i).getString("wait_time")),
                                             Long.parseLong(jArray.getJSONObject(i).getString("last_update"))}
                                     );
                         }
@@ -991,7 +999,7 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
                         if(jArray.getJSONObject(i).getString("place_id")!=null)
                         {
                             result.add(jArray.getJSONObject(i).getString("place_id"));
-                            result.add(Integer.parseInt(jArray.getJSONObject(i).getString("wait_time")));
+                            result.add(Double.parseDouble(jArray.getJSONObject(i).getString("wait_time")));
                             result.add(Long.parseLong(jArray.getJSONObject(i).getString("last_update")));
                         }
 
@@ -1013,8 +1021,8 @@ public class HeatMap extends FragmentActivity implements OnMapReadyCallback, Goo
         protected void onPostExecute(ArrayList<Object> objectArrayList) {
             if(objectArrayList != null)
             {
-                waitTimes.put((String) objectArrayList.get(0),new Object[] {(Integer) objectArrayList.get(1),(Long)objectArrayList.get(2)});
-                place.setWaitTime((Integer) objectArrayList.get(1));
+                waitTimes.put((String) objectArrayList.get(0),new Object[] {(Double) objectArrayList.get(1),(Long)objectArrayList.get(2)});
+                place.setWaitTime((Double) objectArrayList.get(1));
                 place.setLast_update((Long)objectArrayList.get(2));
                 refreshMarker(place);
             }
