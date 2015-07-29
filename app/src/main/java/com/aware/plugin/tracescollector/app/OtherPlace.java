@@ -18,16 +18,31 @@ public class OtherPlace implements Parcelable, Place{
 
     private String name;
     private String id;
+    private double distance;
 
     public OtherPlace()
     {
         name = "Other";
         id = "otherPlaceId";
+        distance = 100000;
+    }
+
+    public OtherPlace(String name, String id, double distance)
+    {
+        this.name = name;
+        this.id = id;
+        this.distance = distance;
     }
 
     private OtherPlace(Parcel in) {
         name = in.readString();
         id = in.readString();
+        distance = in.readDouble();
+    }
+
+    public double getDistance()
+    {
+        return distance;
     }
 
     @Override
@@ -104,6 +119,7 @@ public class OtherPlace implements Parcelable, Place{
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(name);
         dest.writeString(id);
+        dest.writeDouble(distance);
     }
 
     public static final Parcelable.Creator<OtherPlace> CREATOR

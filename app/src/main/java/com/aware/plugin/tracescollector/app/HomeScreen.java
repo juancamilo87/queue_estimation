@@ -3,30 +3,24 @@ package com.aware.plugin.tracescollector.app;
 import android.app.Activity;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Looper;
 import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -38,10 +32,8 @@ import com.aware.plugin.tracescollector.Provider;
 import com.aware.plugin.tracescollector.R;
 import com.aware.plugin.tracescollector.db.LocationDataSource;
 import com.aware.plugin.tracescollector.db.PlacesDataSource;
-import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
-import com.google.android.gms.common.GooglePlayServicesRepairableException;
+import com.aware.plugin.tracescollector.db.TempTracesDataSource;
 import com.google.android.gms.location.places.Place;
-import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.MapView;
 
 import org.apache.http.HttpEntity;
@@ -61,7 +53,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Set;
+import java.util.List;
 
 
 public class HomeScreen extends Activity {
@@ -78,7 +70,7 @@ public class HomeScreen extends Activity {
     public static final String EVENT_STOP = "STOP";
     public static final String EVENT_EXIT = "EXIT";
 
-    public static final int min_radius = 100;
+    public static final int min_radius = 50;
     public static final long min_time = 3000;
 
     public static final int NOTIFICATION_ID = 53256;
@@ -185,14 +177,6 @@ public class HomeScreen extends Activity {
         map_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
-//                try {
-//                    startActivityForResult(builder.build(context), PLACE_PICKER_REQUEST);
-//                } catch (GooglePlayServicesRepairableException e) {
-//                    e.printStackTrace();
-//                } catch (GooglePlayServicesNotAvailableException e) {
-//                    e.printStackTrace();
-//                }
 
                 Intent intent = new Intent(context,HeatMap.class);
                 startActivity(intent);
@@ -305,9 +289,9 @@ public class HomeScreen extends Activity {
 
     private void getLocationForVenue()
     {
-        Intent intent = new Intent(this, ChoosePlaceActivity.class);
-        startActivityForResult(intent, PICK_VENUE_REQUEST);
-        /*
+//        Intent intent = new Intent(this, ChoosePlaceActivity.class);
+//        startActivityForResult(intent, PICK_VENUE_REQUEST);
+
         beginningTime = System.currentTimeMillis();
         // Acquire a reference to the system Location Manager
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -352,12 +336,13 @@ public class HomeScreen extends Activity {
         //Enable Network locations
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
 
-        */
+
     }
 
     private void showChooseVenueActivity(Location location)
     {
-        Toast.makeText(this,"Latitude: "+location.getLatitude()+" - Longitude: "+location.getLongitude()+ " - Accuracy: " + location.getAccuracy(),Toast.LENGTH_SHORT).show();
+        Log.d("Location", "latlng = (" + location.getLatitude() + "," + location.getLongitude() + ")");
+//        Toast.makeText(this,"Latitude: "+location.getLatitude()+" - Longitude: "+location.getLongitude()+ " - Accuracy: " + location.getAccuracy(),Toast.LENGTH_SHORT).show();
         locationManager.removeUpdates(locationListener);
         bestLocation = null;
         beginningTime = 0;
@@ -541,7 +526,8 @@ public class HomeScreen extends Activity {
     private void sendData(String event)
     {
         ContentValues data = new ContentValues();
-        data.put(Provider.TracesCollector_Data.TIMESTAMP, System.currentTimeMillis());
+        long timestamp = System.currentTimeMillis();
+        data.put(Provider.TracesCollector_Data.TIMESTAMP, timestamp);
         data.put(Provider.TracesCollector_Data.DEVICE_ID, Aware.getSetting(context.getApplicationContext(), Aware_Preferences.DEVICE_ID));
         data.put(Provider.TracesCollector_Data.TAG_1, venueId);
         data.put(Provider.TracesCollector_Data.TAG_2, event);
@@ -549,7 +535,7 @@ public class HomeScreen extends Activity {
 
         context.getContentResolver().insert(Provider.TracesCollector_Data.CONTENT_URI, data);
         new UploadTraceTask(Aware.getSetting(context.getApplicationContext(), Aware_Preferences.DEVICE_ID),
-                venueId, event, "").execute();
+                venueId, event, "", timestamp, this).execute();
     }
 
     private void enableUI()
@@ -633,66 +619,133 @@ public class HomeScreen extends Activity {
 
     private static class UploadTraceTask extends AsyncTask<Void, Void, Void>
     {
-        private String devideId;
+        private String deviceId;
         private String venueId;
         private String event;
         private String other;
+        private long timestamp;
+        private HomeScreen context;
 
-        public UploadTraceTask(String devideId, String venueId, String event, String other) {
-            this.devideId = devideId;
+        public UploadTraceTask(String deviceId, String venueId, String event, String other, long timestamp, HomeScreen context) {
+            this.deviceId = deviceId;
             this.venueId = venueId;
             this.event = event;
             this.other = other;
+            this.timestamp = timestamp;
+            this.context = context;
         }
 
         @Override
         protected Void doInBackground(Void... params) {
-
-            JSONObject json = new JSONObject();
-            try
+            TempTracesDataSource tempTracesDataSource = new TempTracesDataSource(context.getApplicationContext());
+            tempTracesDataSource.open();
+            if(context.isOnline())
             {
-                json.put("device_id", devideId);
-                json.put("tag_1", venueId);
-                json.put("tag_2", event);
-                json.put("tag_3", other);
+                List<Trace> traces = tempTracesDataSource.getTempTraces();
 
-                Log.d("JSON Order", json.toString());
-            }
-            catch(Exception e)
-            {
-                Log.e("Error creating JSON", "JSON could not be created");
-                Log.e("Error Trace post",e.getMessage());
-            }
+                JSONArray allTracesJSArray = new JSONArray();
 
-            String URL = POST_TRACE_URL;
-            HttpClient client = new DefaultHttpClient();
-            HttpPost request = new HttpPost(URL);
-
-            try
-            {
-                AbstractHttpEntity entity = new ByteArrayEntity(json.toString().getBytes("UTF8"));
-                entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
-                request.setEntity(entity);
-                HttpResponse response = client.execute(request);
-
-                StatusLine statusLine = response.getStatusLine();
-                int statusCode = statusLine.getStatusCode();
-                if (statusCode == 200) {
-                    Log.d("Traces","Uploaded");
-                }
-                else
+                for(int i = 0; i< traces.size(); i++)
                 {
-                    Log.d("Traces","Error uploading");
+                    Trace trace = traces.get(i);
+                    JSONObject json = new JSONObject();
+                    try
+                    {
+                        json.put("device_id", trace.getDevice_id());
+                        json.put("tag_1", trace.getVenue_id());
+                        json.put("tag_2", trace.getEvent());
+                        json.put("tag_3", trace.getOther());
+                        json.put("timestamp", trace.getTimestamp());
+
+                        allTracesJSArray.put(json);
+                    }
+                    catch(Exception e)
+                    {
+                        Log.e("Error creating JSON", "JSON could not be created");
+                        Log.e("Error Trace post",e.getMessage());
+                        Log.e("Traces","Error: Storing Trace for the future");
+                        tempTracesDataSource.addTrace(new Trace(deviceId, venueId, event, other, timestamp));
+                        return null;
+                    }
                 }
+
+                JSONObject json = new JSONObject();
+                try
+                {
+                    json.put("device_id", deviceId);
+                    json.put("tag_1", venueId);
+                    json.put("tag_2", event);
+                    json.put("tag_3", other);
+                    json.put("timestamp", timestamp);
+                    allTracesJSArray.put(json);
+                }
+                catch(Exception e)
+                {
+                    Log.e("Error creating JSON", "JSON could not be created");
+                    Log.e("Error Trace post",e.getMessage());
+                    Log.e("Traces","Error: Storing Trace for the future");
+                    tempTracesDataSource.addTrace(new Trace(deviceId, venueId, event, other, timestamp));
+                    return null;
+                }
+
+                String URL = POST_TRACE_URL;
+                HttpClient client = new DefaultHttpClient();
+                HttpPost request = new HttpPost(URL);
+
+                try
+                {
+                    Log.d("JSON Traces", allTracesJSArray.toString());
+                    AbstractHttpEntity entity = new ByteArrayEntity(allTracesJSArray.toString().getBytes("UTF8"));
+                    entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
+                    request.setEntity(entity);
+                    HttpResponse response = client.execute(request);
+
+                    StatusLine statusLine = response.getStatusLine();
+                    int statusCode = statusLine.getStatusCode();
+                    if (statusCode == 200) {
+                        Log.d("Traces","Uploaded");
+                        Log.d("Traces", "Cleaning DB");
+                        tempTracesDataSource.cleanDB();
+                        return null;
+                    }
+                    else if(statusCode == 201) {
+                        Log.d("Traces","Uploaded but wait time not updated");
+                        Log.d("Traces", "Cleaning DB");
+                        tempTracesDataSource.cleanDB();
+                        return null;
+                    }
+                    else
+                    {
+                        Log.d("Traces","Error uploading");
+                        Log.e("Traces","Error: Storing Trace for the future");
+                        tempTracesDataSource.addTrace(new Trace(deviceId, venueId, event, other, timestamp));
+                        return null;
+                    }
+                }
+                catch(Exception e)
+                {
+                    Log.e("Error posting traces", "HttpPost failed");
+                    Log.e("Error Trace post",e.getMessage());
+                    Log.e("Traces","Error: Storing Trace for the future");
+                    tempTracesDataSource.addTrace(new Trace(deviceId, venueId, event, other, timestamp));
+                    return null;
+                }
+
             }
-            catch(Exception e)
+            else
             {
-                Log.e("Error posting traces", "HttpPost failed");
-                Log.e("Error Trace post",e.getMessage());
+                Log.d("Storing","No internet connection. Storing");
+                tempTracesDataSource.addTrace(new Trace(deviceId, venueId, event, other, timestamp));
+                return null;
             }
-            return null;
         }
+
     }
 
-
+    public boolean isOnline() {
+        ConnectivityManager cm =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        return netInfo != null && netInfo.isConnectedOrConnecting();
+    }
 }

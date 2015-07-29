@@ -12,7 +12,7 @@ import com.aware.plugin.tracescollector.model.MyDBPlace;
 public class MySQLiteHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "local_locations.db";
-    private static final int DATABASE_VERSION = 12;
+    private static final int DATABASE_VERSION = 13;
 
     public static final long DAYS_LIMIT_IN_MILLIS = 2592000000L;
     public static final long DAYS_LIMIT_IN_MILLIS_SEARCH = 259200000L;
@@ -49,6 +49,24 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
             COLUMN_PLACES_NAME + " text, " +
             "UNIQUE (" + COLUMN_PLACES_PLACE_ID + ") ON CONFLICT REPLACE);";
 
+    public static final String TABLE_TEMP_TRACES = "temp_traces";
+    public static final String COLUMN_TEMP_TRACES_ID = "_id";
+    public static final String COLUMN_TEMP_TRACES_DEVICE_ID = "device_id";
+    public static final String COLUMN_TEMP_TRACES_VENUE_ID = "venue_id";
+    public static final String COLUMN_TEMP_TRACES_EVENT = "event";
+    public static final String COLUMN_TEMP_TRACES_OTHER = "other";
+    public static final String COLUMN_TEMP_TRACES_TIMESTAMP = "timestamp";
+
+
+    private static final String CREATE_TABLE_TEMP_TRACES = "create table "
+            + TABLE_TEMP_TRACES + "(" +
+            COLUMN_TEMP_TRACES_ID + " integer primary key autoincrement, " +
+            COLUMN_TEMP_TRACES_DEVICE_ID + " text not null, " +
+            COLUMN_TEMP_TRACES_VENUE_ID + " text not null, " +
+            COLUMN_TEMP_TRACES_EVENT + " text not null, "+
+            COLUMN_TEMP_TRACES_OTHER + " text not null, "+
+            COLUMN_TEMP_TRACES_TIMESTAMP + " real not null);";
+
     private static MySQLiteHelper instance;
 
 
@@ -68,6 +86,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
         sqLiteDatabase.execSQL(CREATE_TABLE_SEARCH_LOCATION);
         sqLiteDatabase.execSQL(CREATE_TABLE_PLACES);
+        sqLiteDatabase.execSQL(CREATE_TABLE_TEMP_TRACES);
     }
 
     @Override
@@ -75,6 +94,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
         // on upgrade drop older tables
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TABLE_SEARCH_LOCATION);
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TABLE_PLACES);
+        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TABLE_TEMP_TRACES);
 
         // create new tables
         onCreate(sqLiteDatabase);

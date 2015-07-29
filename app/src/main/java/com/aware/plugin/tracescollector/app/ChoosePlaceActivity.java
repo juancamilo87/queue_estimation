@@ -7,7 +7,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.util.Log;
@@ -17,6 +20,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import com.aware.plugin.tracescollector.R;
+import com.aware.plugin.tracescollector.model.MyDBPlace;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -31,8 +35,23 @@ import com.google.android.gms.location.places.PlaceLikelihoodBuffer;
 import com.google.android.gms.location.places.PlaceReport;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.maps.android.SphericalUtil;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -210,49 +229,265 @@ public class ChoosePlaceActivity extends Activity implements GoogleApiClient.Con
 //    }
 
     private void guessCurrentPlace() {
-        PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi.getCurrentPlace( mGoogleApiClient, null );
-        result.setResultCallback( new ResultCallback<PlaceLikelihoodBuffer>() {
-            @Override
-            public void onResult( PlaceLikelihoodBuffer likelyPlaces ) {
-                findViewById(R.id.empty_place).setVisibility(View.GONE);
-                Log.d("tracescollector","Got result with " + likelyPlaces.getCount() + " likely places");
-                //PlaceLikelihood placeLikelihood = likelyPlaces.get( 0 );
-                PlaceLikelihood newPlace;
-                listAdapter.clear();
-                places.clear();
-                for(int i = 0; i< likelyPlaces.getCount(); i++)
+        LatLng latLng;
+        Location gps_location = ((LocationManager) this.getSystemService(Context.LOCATION_SERVICE)).getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        Location network_location = ((LocationManager) this.getSystemService(Context.LOCATION_SERVICE)).getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        if(gps_location == null)
+            latLng = new LatLng(network_location.getLatitude(),network_location.getLongitude());
+        else if(network_location == null)
+            latLng = new LatLng(gps_location.getLatitude(),gps_location.getLongitude());
+        else
+        {
+            long time_delta = Math.abs(gps_location.getTime()-network_location.getTime());
+            if(time_delta<60000)
+            {
+                if(gps_location.getAccuracy()<network_location.getAccuracy())
                 {
-                    newPlace = likelyPlaces.get(i);
-                    List<Integer> placeTypes = newPlace.getPlace().getPlaceTypes();
-                    if(placeTypes.contains(Place.TYPE_BAKERY)||
-                            placeTypes.contains(Place.TYPE_BAR)||
-                            placeTypes.contains(Place.TYPE_CAFE)||
-                            placeTypes.contains(Place.TYPE_NIGHT_CLUB)||
-                            placeTypes.contains(Place.TYPE_RESTAURANT)||
-                            newPlace.getPlace().getName().toString().toLowerCase().contains("ravintola")||
-                            newPlace.getPlace().getName().toString().toLowerCase().contains("restaurant"))
-                    {
-                        places.add(new MyPlace(newPlace.getPlace()));
-                    }
-                }
-                if(places.size() == 0)
-                {
-                    findViewById(R.id.no_places).setVisibility(View.VISIBLE);
+                    latLng = new LatLng(gps_location.getLatitude(),gps_location.getLongitude());
                 }
                 else
-                {
-                    places.add(new MyPlace(new OtherPlace()));
-                }
-                listAdapter.notifyDataSetChanged();
-                likelyPlaces.release();
+                    latLng = new LatLng(network_location.getLatitude(),network_location.getLongitude());
             }
-        });
+            else
+            {
+                if(gps_location.getTime()>network_location.getTime())
+                {
+                    latLng = new LatLng(gps_location.getLatitude(),gps_location.getLongitude());
+                }
+                else
+                    latLng = new LatLng(network_location.getLatitude(),network_location.getLongitude());
+            }
+
+        }
+        Log.d("Used location", "latlng = " + latLng.toString());
+        String[] keywords = {"bakery", "bar", "cafe", "night_club", "restaurant", "ravintola"};
+        new GetPlacesTask(latLng, keywords).execute();
+//        PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi.getCurrentPlace( mGoogleApiClient, null );
+//        result.setResultCallback( new ResultCallback<PlaceLikelihoodBuffer>() {
+//            @Override
+//            public void onResult( PlaceLikelihoodBuffer likelyPlaces ) {
+//                findViewById(R.id.empty_place).setVisibility(View.GONE);
+//                Log.d("tracescollector","Got result with " + likelyPlaces.getCount() + " likely places");
+//                //PlaceLikelihood placeLikelihood = likelyPlaces.get( 0 );
+//                PlaceLikelihood newPlace;
+//                listAdapter.clear();
+//                places.clear();
+//                for(int i = 0; i< likelyPlaces.getCount(); i++)
+//                {
+//                    newPlace = likelyPlaces.get(i);
+//                    List<Integer> placeTypes = newPlace.getPlace().getPlaceTypes();
+//                    if(placeTypes.contains(Place.TYPE_BAKERY)||
+//                            placeTypes.contains(Place.TYPE_BAR)||
+//                            placeTypes.contains(Place.TYPE_CAFE)||
+//                            placeTypes.contains(Place.TYPE_NIGHT_CLUB)||
+//                            placeTypes.contains(Place.TYPE_RESTAURANT)||
+//                            newPlace.getPlace().getName().toString().toLowerCase().contains("ravintola")||
+//                            newPlace.getPlace().getName().toString().toLowerCase().contains("restaurant"))
+//                    {
+//                        places.add(new MyPlace(newPlace.getPlace()));
+//                    }
+//                }
+//                if(places.size() == 0)
+//                {
+//                    findViewById(R.id.no_places).setVisibility(View.VISIBLE);
+//                }
+//                else
+//                {
+//                    places.add(new MyPlace(new OtherPlace()));
+//                }
+//                listAdapter.notifyDataSetChanged();
+//                likelyPlaces.release();
+//            }
+//        });
     }
 
     @Override
     public void onBackPressed() {
         setResult(RESULT_CANCELED);
         finish();
+    }
+
+    private class GetPlacesTask extends AsyncTask<Void, Void, Boolean>
+    {
+
+        private LatLng latLng;
+        private String[] keyword;
+
+        public GetPlacesTask(LatLng latLng, String[] keyword)
+        {
+            this.latLng = latLng;
+            this.keyword = keyword;
+        }
+
+        @Override
+        protected void onPreExecute() {
+//            listAdapter.clear();
+            super.onPreExecute();
+        }
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            places.clear();
+            boolean answer = true;
+            String result[] = new String[keyword.length*3];
+            String jsonResponse = null;
+
+            HttpClient client = new DefaultHttpClient();
+            String theURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
+
+            theURL += "key=AIzaSyDeS7X-VKQjeKHb4o2mBUSDQZjCx9GflIo";
+            theURL += "&location="+latLng.latitude+","+latLng.longitude;
+            theURL += "&rankby=distance";
+            for(int s = 0; s<keyword.length;s++)
+            {
+                String URL = theURL + "&keyword="+keyword[s];
+                Log.d("URL",URL);
+                try
+                {
+                    Log.d("Task","0");
+                    // Create Request to server and get response
+                    StringBuilder builder = new StringBuilder();
+                    Log.d("Task","0.1");
+                    HttpGet httpGet = new HttpGet(URL);
+                    Log.d("Task","0.2");
+                    HttpResponse response = client.execute(httpGet);
+                    Log.d("Task","1");
+                    StatusLine statusLine = response.getStatusLine();
+                    int statusCode = statusLine.getStatusCode();
+                    if (statusCode == 200) {
+                        Log.d("Task","2");
+                        HttpEntity entity = response.getEntity();
+                        InputStream content = entity.getContent();
+                        BufferedReader reader = new BufferedReader(
+                                new InputStreamReader(content));
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            builder.append(line);
+                        }
+                        Log.d("Task", "3");
+                        Log.v("Getter", "Your data: " + builder.toString());
+                        jsonResponse = builder.toString();
+                        result[s] = jsonResponse;
+
+                    } else {
+                        Log.e("Getter", "Failed to get 1-20 places");
+                        answer = false;
+                        return answer;
+                    }
+                }
+                catch(Exception ex)
+                {
+                    answer = false;
+                    Log.e("Getter", "Failed"); //response data
+                    Log.e("Getter",ex.toString());
+                    return answer;
+                }
+            }
+
+
+
+            JSONObject jObject;
+            JSONArray jsonArray;
+
+            for(int i = 0; i<result.length;i++)
+            {
+                Log.d("Task","18");
+                if(result[i]!=null)
+                {
+                    try
+                    {
+                        jObject = new JSONObject(result[i]);
+                        jsonArray = jObject.getJSONArray("results");
+
+                        for(int j = 0; j<jsonArray.length();j++) {
+                            Log.d("Task","19");
+                            JSONObject jsonPlace = jsonArray.getJSONObject(j);
+                            String place_id = jsonPlace.getString("place_id");
+                            String name = jsonPlace.getString("name");
+                            JSONArray typesArray = jsonPlace.getJSONArray("types");
+                            Log.d(name,typesArray.toString());
+                            if(typesArray.toString().toLowerCase().contains("bakery")||
+                                    typesArray.toString().toLowerCase().contains("bar")||
+                                    typesArray.toString().toLowerCase().contains("cafe")||
+                                    typesArray.toString().toLowerCase().contains("night_club")||
+                                    typesArray.toString().toLowerCase().contains("restaurant")||
+                                    name.toLowerCase().contains("restaurant")||
+                                    name.toLowerCase().contains("ravintola"))
+                            {
+                                MyPlace placeToAdd = new MyPlace(new OtherPlace(name,
+                                        place_id,
+                                        SphericalUtil.computeDistanceBetween(
+                                                latLng,
+                                                new LatLng(
+                                                        jsonPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lat"),
+                                                        jsonPlace.getJSONObject("geometry").getJSONObject("location").getDouble("lng"))
+                                        )));
+                                if(!places.contains(placeToAdd))
+                                    places.add(placeToAdd);
+                            }
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        Log.e("JSON", "Failed"); //response data
+                        answer = false;
+                        return answer;
+                    }
+                }
+            }
+
+            Collections.sort(places, new LocationComparator());
+            double current_distance = 10000;
+            for(int i = places.size()-1; i>18 || current_distance>200; i--)
+            {
+                current_distance = places.get(i).getDistance();
+                places.remove(i);
+            }
+
+            return answer;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean answer) {
+//            if(answer)
+//            {
+            findViewById(R.id.empty_place).setVisibility(View.GONE);
+
+            if(places.size() == 0)
+            {
+                findViewById(R.id.no_places).setVisibility(View.VISIBLE);
+            }
+            else
+            {
+                places.add(new MyPlace(new OtherPlace()));
+            }
+            listAdapter.notifyDataSetChanged();
+//            }
+//            else
+//            {
+//                busy = false;
+//            }
+//            Log.d("BooleanP",busy+"");
+
+        }
+    }
+
+    public class LocationComparator implements Comparator<MyPlace>
+    {
+        public int compare(MyPlace left, MyPlace right) {
+            if(left.getDistance()<right.getDistance())
+            {
+                return -1;
+            }
+            else if(left.getDistance()==right.getDistance())
+            {
+                return 0;
+            }
+            else
+            {
+                return 1;
+            }
+        }
     }
 
 

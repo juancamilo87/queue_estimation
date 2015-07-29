@@ -14,6 +14,8 @@ public class MyPlace {
         place = nPlace.freeze();
     }
 
+
+
     @Override
     public String toString() {
         return place.getName().toString();
@@ -22,5 +24,23 @@ public class MyPlace {
     public Place getPlace()
     {
         return place;
+    }
+
+    public double getDistance()
+    {
+        if(place instanceof OtherPlace)
+        {
+            return ((OtherPlace) place).getDistance();
+        }
+        return 0;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if(o instanceof MyPlace && place.getId().equals(((MyPlace) o).getPlace().getId()))
+        {
+            return true;
+        }
+        return false;
     }
 }
