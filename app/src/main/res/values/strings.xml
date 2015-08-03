@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Traces Collector</string>
+    <string name="app_name">Queue Estimator</string>
 
     <string name="title_activity_home_screen">Queue Estimator</string>
     <string name="title_activity_choose_place">Choose Placer</string>

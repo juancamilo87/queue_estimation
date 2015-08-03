@@ -15,6 +15,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
@@ -51,6 +52,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
@@ -80,6 +84,8 @@ public class HomeScreen extends Activity {
     static final int PLACE_PICKER_REQUEST = 3;
 
     private static final String POST_TRACE_URL = "http://pan0166.panoulu.net/queue_estimation/post_trace.php";
+    private static final String TRACES_CSV_FILE = "traces.csv";
+    private static final String APP_FOLDER = "Queue_Estimation";
 
     private Context context;
 
@@ -637,6 +643,9 @@ public class HomeScreen extends Activity {
 
         @Override
         protected Void doInBackground(Void... params) {
+
+            appendToCSV(TRACES_CSV_FILE,new String[]{deviceId, venueId, event, other, timestamp+""});
+
             TempTracesDataSource tempTracesDataSource = new TempTracesDataSource(context.getApplicationContext());
             tempTracesDataSource.open();
             if(context.isOnline())
@@ -747,5 +756,36 @@ public class HomeScreen extends Activity {
                 (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm.getActiveNetworkInfo();
         return netInfo != null && netInfo.isConnectedOrConnecting();
+    }
+
+    public static void appendToCSV(String sFileName, String[] line)
+    {
+        try
+        {
+            File root = new File(Environment.getExternalStorageDirectory(),
+                    APP_FOLDER);
+            if (!root.exists()) {
+                root.mkdirs();
+            }
+            File gpxfile = new File(root, sFileName);
+            FileWriter writer = new FileWriter(gpxfile, true);
+            if(line.length>0)
+            {
+                writer.append(line[0]);
+                for(int i = 1; i<line.length;i++)
+                {
+                    writer.append(",");
+                    writer.append(line[i]);
+                }
+                writer.append("\n");
+            }
+
+            writer.flush();
+            writer.close();
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+        }
     }
 }

@@ -129,40 +129,40 @@
                     </LinearLayout>
 
 
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:layout_marginLeft="10dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/messages_duration"/>
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-                            <EditText
-                                android:id="@+id/messages_duration"
-                                android:layout_width="50dp"
-                                android:layout_height="wrap_content"
-                                android:maxLines="1"
-                                android:singleLine="true"
-                                android:maxLength="4"
-                                android:inputType="number"
-                                android:layout_marginRight="5dp"
-                                android:hint="40"
-                                android:gravity="center"
-                                android:nextFocusDown="@+id/messages_message"
-                                />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/messages_minutes"
-                                android:layout_marginLeft="5dp"/>
-                        </LinearLayout>
-                    </LinearLayout>
+                    <!--<LinearLayout-->
+                        <!--android:layout_width="0dp"-->
+                        <!--android:layout_weight="1"-->
+                        <!--android:layout_height="wrap_content"-->
+                        <!--android:orientation="vertical"-->
+                        <!--android:layout_marginLeft="10dp">-->
+                        <!--<TextView-->
+                            <!--android:layout_width="wrap_content"-->
+                            <!--android:layout_height="wrap_content"-->
+                            <!--android:text="@string/messages_duration"/>-->
+                        <!--<LinearLayout-->
+                            <!--android:layout_width="match_parent"-->
+                            <!--android:layout_height="wrap_content"-->
+                            <!--android:orientation="horizontal">-->
+                            <!--<EditText-->
+                                <!--android:id="@+id/messages_duration"-->
+                                <!--android:layout_width="50dp"-->
+                                <!--android:layout_height="wrap_content"-->
+                                <!--android:maxLines="1"-->
+                                <!--android:singleLine="true"-->
+                                <!--android:maxLength="4"-->
+                                <!--android:inputType="number"-->
+                                <!--android:layout_marginRight="5dp"-->
+                                <!--android:hint="40"-->
+                                <!--android:gravity="center"-->
+                                <!--android:nextFocusDown="@+id/messages_message"-->
+                                <!--/>-->
+                            <!--<TextView-->
+                                <!--android:layout_width="wrap_content"-->
+                                <!--android:layout_height="wrap_content"-->
+                                <!--android:text="@string/messages_minutes"-->
+                                <!--android:layout_marginLeft="5dp"/>-->
+                        <!--</LinearLayout>-->
+                    <!--</LinearLayout>-->
 
                 </LinearLayout>
 

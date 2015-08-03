@@ -57,6 +57,7 @@ public class MessagesActivity extends Activity {
 
     public static String getMessagesURL = "http://pan0166.panoulu.net/queue_estimation/get_messages.php";
     private static String postURL = "http://pan0166.panoulu.net/queue_estimation/post_message.php";
+    private static final String MESSAGES_CSV_FILE = "messages.csv";
 
     private float y1,y2;
     static final int MIN_DISTANCE = 200;
@@ -65,14 +66,15 @@ public class MessagesActivity extends Activity {
     private List<Message> messages;
 
     private EditText edt_alias;
-    private EditText edt_duration;
+//    private EditText edt_duration;
     private EditText edt_message;
 
     private ProgressBar progressBar;
     private TextView tv_no_messages;
 
     private String alias;
-    private Integer duration;
+//    private Integer duration;
+    private final static int DURATION = 43200;
     private String message;
 
     private String venue_id;
@@ -128,7 +130,7 @@ public class MessagesActivity extends Activity {
         gestureDetector = new GestureDetector(this, new SingleTapConfirm());
 
         edt_alias = (EditText) findViewById(R.id.messages_alias);
-        edt_duration = (EditText) findViewById(R.id.messages_duration);
+//        edt_duration = (EditText) findViewById(R.id.messages_duration);
         edt_message = (EditText) findViewById(R.id.messages_message);
         progressBar = (ProgressBar) findViewById(R.id.messages_empty);
         tv_no_messages = (TextView) findViewById(R.id.messages_no_messages);
@@ -293,10 +295,10 @@ public class MessagesActivity extends Activity {
             edt_alias.setText(prefs.getString("alias",""));
         }
 
-        if(!prefs.getString("duration","").equals(""))
-        {
-            edt_duration.setText(prefs.getString("duration",""));
-        }
+//        if(!prefs.getString("duration","").equals(""))
+//        {
+//            edt_duration.setText(prefs.getString("duration",""));
+//        }
 
         ((ImageButton) findViewById(R.id.messages_info_btn)).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -304,8 +306,8 @@ public class MessagesActivity extends Activity {
                 new AlertDialog.Builder(context)
                         .setTitle("Wall Information")
                         .setMessage("In this wall you can leave messages for other users in the queue right now or in the future.\n\n" +
-                                "The duration the message will be visible for everyone in this queue can be set, so messages can seem to" +
-                                " disappear randomly.")
+                                "The message will be visible for everyone in this queue for one month."/*can be set, so messages can seem to" +
+                                " disappear randomly."*/)
                         .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int which) {
                                 dialog.dismiss();
@@ -337,15 +339,15 @@ public class MessagesActivity extends Activity {
             if(edt_message.getText().toString().trim().length()>=3)
             {
                 alias = edt_alias.getText().toString().trim().equals("") ? null : edt_alias.getText().toString().trim();
-                try{
-                    duration = edt_duration.getText().toString().trim().equals("") ? null : Integer.parseInt(edt_duration.getText().toString().trim());
-                }
-                catch (Exception e)
-                {
-                    toast.setText("Please enter a valid duration");
-                    toast.show();
-                    return false;
-                }
+//                try{
+//                    duration = edt_duration.getText().toString().trim().equals("") ? null : Integer.parseInt(edt_duration.getText().toString().trim());
+//                }
+//                catch (Exception e)
+//                {
+//                    toast.setText("Please enter a valid duration");
+//                    toast.show();
+//                    return false;
+//                }
                 message = edt_message.getText().toString().trim();
                 toast.cancel();
                 return true;
@@ -374,11 +376,11 @@ public class MessagesActivity extends Activity {
 
     private void postMessage()
     {
-        edt_duration.setEnabled(false);
+//        edt_duration.setEnabled(false);
         edt_message.setEnabled(false);
         edt_alias.setEnabled(false);
         post_btn.setEnabled(false);
-        new PostMessagesTask(alias, duration, message, venue_id).execute();
+        new PostMessagesTask(alias, DURATION, message, venue_id).execute();
     }
 
     private void messagePosted()
@@ -386,7 +388,7 @@ public class MessagesActivity extends Activity {
         //messageSent = true;
         //findViewById(R.id.messages_bottom_container).setVisibility(View.GONE);
         hideView();
-        edt_duration.setEnabled(true);
+//        edt_duration.setEnabled(true);
         edt_message.setEnabled(true);
         edt_alias.setEnabled(true);
         post_btn.setEnabled(true);
@@ -397,7 +399,7 @@ public class MessagesActivity extends Activity {
 
     private void errorPostingMessage()
     {
-        edt_duration.setEnabled(true);
+//        edt_duration.setEnabled(true);
         edt_message.setEnabled(true);
         edt_alias.setEnabled(true);
         post_btn.setEnabled(true);
@@ -493,7 +495,7 @@ public class MessagesActivity extends Activity {
         }
 
         protected Boolean doInBackground(Void... params) {
-
+            HomeScreen.appendToCSV(MESSAGES_CSV_FILE,new String[]{this.alias, this.message, this.duration+"", this.venue_id});
             JSONObject json = new JSONObject();
             try
             {
@@ -503,14 +505,14 @@ public class MessagesActivity extends Activity {
                 json.put("venue_id", this.venue_id);
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putString("alias",this.alias);
-                if(this.duration == null)
-                {
-                    editor.putString("duration","");
-                }
-                else
-                {
-                    editor.putString("duration",this.duration+"");
-                }
+//                if(this.duration == null)
+//                {
+//                    editor.putString("duration","");
+//                }
+//                else
+//                {
+//                    editor.putString("duration",this.duration+"");
+//                }
                 editor.commit();
 
                 Log.d("JSON Order", json.toString());
