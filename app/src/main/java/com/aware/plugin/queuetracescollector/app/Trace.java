@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector.app;
+package com.aware.plugin.queuetracescollector.app;
 
 /**
  * Created by researcher on 28/07/15.

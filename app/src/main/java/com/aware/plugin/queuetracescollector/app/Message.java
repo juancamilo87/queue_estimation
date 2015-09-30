@@ -1,11 +1,10 @@
-package com.aware.plugin.tracescollector.app;
+package com.aware.plugin.queuetracescollector.app;
 
 import android.util.Log;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.TimeZone;
 
 /**

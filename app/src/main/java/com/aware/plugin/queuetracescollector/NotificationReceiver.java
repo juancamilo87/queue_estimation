@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector;
+package com.aware.plugin.queuetracescollector;
 
 import android.app.NotificationManager;
 import android.app.PendingIntent;

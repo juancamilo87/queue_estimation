@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector.app;
+package com.aware.plugin.queuetracescollector.app;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -6,7 +6,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -28,7 +27,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.aware.plugin.tracescollector.R;
+import com.aware.plugin.queuetracescollector.R;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -288,7 +287,7 @@ public class MessagesActivity extends Activity {
         }
         getMessages();
 
-        prefs = getSharedPreferences("com.aware.plugin.tracescollector.messages",MODE_PRIVATE);
+        prefs = getSharedPreferences("com.aware.plugin.queuetracescollector.messages",MODE_PRIVATE);
 
         if(!prefs.getString("alias","").equals(""))
         {

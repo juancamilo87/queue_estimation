@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector.app;
+package com.aware.plugin.queuetracescollector.app;
 
 import android.bluetooth.BluetoothDevice;
 

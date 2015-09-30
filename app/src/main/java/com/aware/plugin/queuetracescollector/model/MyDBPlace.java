@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector.model;
+package com.aware.plugin.queuetracescollector.model;
 
 import com.google.android.gms.maps.model.LatLng;
 

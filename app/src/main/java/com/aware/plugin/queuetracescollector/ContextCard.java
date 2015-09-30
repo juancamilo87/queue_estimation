@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector;
+package com.aware.plugin.queuetracescollector;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

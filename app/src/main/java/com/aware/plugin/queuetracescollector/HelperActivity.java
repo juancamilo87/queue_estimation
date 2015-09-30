@@ -1,22 +1,14 @@
-package com.aware.plugin.tracescollector;
+package com.aware.plugin.queuetracescollector;
 
 import android.app.Activity;
 import android.app.NotificationManager;
 import android.bluetooth.BluetoothAdapter;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
-import android.os.Looper;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 /**
  * Created by researcher on 03/06/15.
@@ -26,7 +18,7 @@ public class HelperActivity extends Activity{
     public static final int TIME_DISCOVERABLE = 300;
     public static final int DISCOVERABLE_REQUEST = 4;  // The request code
     public static final String NOTIFICATION_ID = "notification_id";
-    public static final String NOTIFICATION_ACTION = "com.aware.plugin.tracescollector.notification";
+    public static final String NOTIFICATION_ACTION = "com.aware.plugin.queuetracescollector.notification";
 
     private Plugin plugin;
 

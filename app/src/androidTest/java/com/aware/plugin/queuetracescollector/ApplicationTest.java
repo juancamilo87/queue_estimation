@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector;
+package com.aware.plugin.queuetracescollector;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;

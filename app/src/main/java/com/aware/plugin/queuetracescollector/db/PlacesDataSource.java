@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector.db;
+package com.aware.plugin.queuetracescollector.db;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -6,8 +6,7 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 
-import com.aware.plugin.tracescollector.model.MyDBPlace;
-import com.google.android.gms.location.places.Place;
+import com.aware.plugin.queuetracescollector.model.MyDBPlace;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector;
+package com.aware.plugin.queuetracescollector;
 
 import android.content.ContentProvider;
 import android.content.ContentUris;
@@ -26,7 +26,7 @@ public class Provider extends ContentProvider {
     public static final int DATABASE_VERSION = 2;
 
 
-    public static String AUTHORITY = "com.aware.plugin.tracescollector.provider.tracescollector";
+    public static String AUTHORITY = "com.aware.plugin.queuetracescollector.provider.queuetracescollector";
 
     private static final int TRACESCOLLECTOR = 1;
     private static final int TRACESCOLLECTOR_ID = 2;
@@ -37,8 +37,8 @@ public class Provider extends ContentProvider {
 
         public static final Uri CONTENT_URI = Uri.parse("content://"
                 + Provider.AUTHORITY + "/plugin_tracescollector");
-        public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.aware.plugin.tracescollector";
-        public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.aware.plugin.tracescollector";
+        public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.aware.plugin.queuetracescollector";
+        public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.aware.plugin.queuetracescollector";
 
         public static final String _ID = "_id";
         public static final String TIMESTAMP = "timestamp";
@@ -79,7 +79,7 @@ public class Provider extends ContentProvider {
 
     @Override
     public boolean onCreate() {
-        AUTHORITY = BuildConfig.APPLICATION_ID + ".provider.tracescollector"; //make AUTHORITY dynamic
+        AUTHORITY = BuildConfig.APPLICATION_ID + ".provider.queuetracescollector"; //make AUTHORITY dynamic
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         sUriMatcher.addURI(AUTHORITY, DATABASE_TABLES[0], TRACESCOLLECTOR); //URI for all records
         sUriMatcher.addURI(AUTHORITY, DATABASE_TABLES[0]+"/#", TRACESCOLLECTOR_ID); //URI for a single record

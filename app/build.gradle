@@ -5,7 +5,7 @@ android {
     compileSdkVersion 22
     buildToolsVersion "22"
     defaultConfig {
-        applicationId 'com.aware.plugin.tracescollector'
+        applicationId 'com.aware.plugin.queuetracescollector'
         minSdkVersion 10
         targetSdkVersion 22
         versionCode 3

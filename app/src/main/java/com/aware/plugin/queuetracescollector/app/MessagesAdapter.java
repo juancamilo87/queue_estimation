@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector.app;
+package com.aware.plugin.queuetracescollector.app;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -6,7 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.aware.plugin.tracescollector.R;
+import com.aware.plugin.queuetracescollector.R;
 
 import java.util.List;
 

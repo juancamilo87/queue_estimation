@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector;
+package com.aware.plugin.queuetracescollector;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,7 +12,7 @@ import com.aware.Aware;
 
 public class Settings extends PreferenceActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
-    public static final String STATUS_PLUGIN_TRACESCOLLECTOR = "status_plugin_tracescollector";
+    public static final String STATUS_PLUGIN_TRACESCOLLECTOR = "status_plugin_queuetracescollector";
     public static final String BT_UUID_KEY = "bt_uuid_key";
 
     @Override

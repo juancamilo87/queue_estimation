@@ -1,10 +1,8 @@
-package com.aware.plugin.tracescollector.db;
+package com.aware.plugin.queuetracescollector.db;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-
-import com.aware.plugin.tracescollector.model.MyDBPlace;
 
 /**
  * Created by JuanCamilo on 5/7/2015.

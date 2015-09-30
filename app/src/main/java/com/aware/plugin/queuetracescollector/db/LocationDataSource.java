@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector.db;
+package com.aware.plugin.queuetracescollector.db;
 
 import android.content.ContentValues;
 import android.content.Context;

@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.aware.plugin.tracescollector">
+    package="com.aware.plugin.queuetracescollector">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -16,24 +16,24 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCTHF8szeeuNorL5ZBOOAEkrUySviuQgSU"/>
 
-        <service android:name="com.aware.plugin.tracescollector.Plugin" android:exported="true" />
-        <activity android:name="com.aware.plugin.tracescollector.Settings" android:exported="true" android:theme="@style/Theme.Aware" />
+        <service android:name="com.aware.plugin.queuetracescollector.Plugin" android:exported="true" />
+        <activity android:name="com.aware.plugin.queuetracescollector.Settings" android:exported="true" android:theme="@style/Theme.Aware" />
 
         <activity
-            android:name="com.aware.plugin.tracescollector.HelperActivity"
+            android:name="com.aware.plugin.queuetracescollector.HelperActivity"
             android:exported="true"
             android:theme="@style/Theme.Aware">
         </activity>
 
-        <receiver android:name="com.aware.plugin.tracescollector.NotificationReceiver">
+        <receiver android:name="com.aware.plugin.queuetracescollector.NotificationReceiver">
             <intent-filter>
-                <action android:name="com.aware.plugin.tracescollector.notification"/>
+                <action android:name="com.aware.plugin.queuetracescollector.notification"/>
             </intent-filter>
         </receiver>
 
         <provider
-            android:name="com.aware.plugin.tracescollector.Provider"
-            android:authorities="${applicationId}.provider.tracescollector"
+            android:name="com.aware.plugin.queuetracescollector.Provider"
+            android:authorities="${applicationId}.provider.queuetracescollector"
             android:enabled="true"
             android:exported="true"
             android:readPermission="com.aware.READ_CONTEXT_DATA"
@@ -41,7 +41,7 @@
         </provider>
 
         <activity
-            android:name=".app.HomeScreen"
+            android:name="com.aware.plugin.queuetracescollector.app.HomeScreen"
             android:label="@string/title_activity_home_screen" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -50,18 +50,18 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".app.ChoosePlaceActivity"
+            android:name="com.aware.plugin.queuetracescollector.app.ChoosePlaceActivity"
             android:label="@string/title_activity_choose_place" >
         </activity>
         <activity
-            android:name=".app.MessagesActivity"
+            android:name="com.aware.plugin.queuetracescollector.app.MessagesActivity"
             android:label="@string/title_activity_messages"
             android:windowSoftInputMode="stateHidden|adjustResize"
             >
         </activity>
 
         <activity
-            android:name=".app.HeatMap"
+            android:name="com.aware.plugin.queuetracescollector.app.HeatMap"
             android:label="Heat map"
             android:windowSoftInputMode="stateHidden|adjustResize"
             >

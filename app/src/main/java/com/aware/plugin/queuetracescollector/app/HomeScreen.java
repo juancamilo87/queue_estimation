@@ -1,4 +1,4 @@
-package com.aware.plugin.tracescollector.app;
+package com.aware.plugin.queuetracescollector.app;
 
 import android.app.Activity;
 import android.app.NotificationManager;
@@ -29,11 +29,11 @@ import android.widget.Toast;
 
 import com.aware.Aware;
 import com.aware.Aware_Preferences;
-import com.aware.plugin.tracescollector.Provider;
-import com.aware.plugin.tracescollector.R;
-import com.aware.plugin.tracescollector.db.LocationDataSource;
-import com.aware.plugin.tracescollector.db.PlacesDataSource;
-import com.aware.plugin.tracescollector.db.TempTracesDataSource;
+import com.aware.plugin.queuetracescollector.Provider;
+import com.aware.plugin.queuetracescollector.R;
+import com.aware.plugin.queuetracescollector.db.LocationDataSource;
+import com.aware.plugin.queuetracescollector.db.PlacesDataSource;
+import com.aware.plugin.queuetracescollector.db.TempTracesDataSource;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.maps.MapView;
 
