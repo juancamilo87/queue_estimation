@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/context_card"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="1dp"
+    android:layout_marginTop="1dp"
+    android:fitsSystemWindows="true"
+    android:padding="10dp" >
+
+    <ImageView
+        android:id="@+id/ambient_noise_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_action_ambient_noise" />
+
+    <TextView
+        android:id="@+id/frequency"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@+id/ambient_noise_icon"
+        android:text="0 Hz"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="@android:color/black" />
+
+    <TextView
+        android:id="@+id/decibels"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/frequency"
+        android:layout_below="@+id/frequency"
+        android:text="0 dB"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="@android:color/black" />
+
+    <TextView
+        android:id="@+id/ambient_noise"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_marginLeft="10dp"
+        android:text="Silent"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textColor="@android:color/black" />
+
+    <TextView
+        android:id="@+id/rms"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/ambient_noise"
+        android:layout_marginRight="10dp"
+        android:layout_toLeftOf="@+id/rms_threshold"
+        android:text="RMS: "
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="#000"
+        android:textSize="10sp" />
+
+    <TextView
+        android:id="@+id/rms_threshold"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/ambient_noise"
+        android:text="Threshold:"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="#000"
+        android:textSize="10sp" />
+
+    <LinearLayout
+        android:id="@+id/ambient_plot"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/decibels"
+        android:layout_marginBottom="1dp"
+        android:orientation="vertical" />
+
+</RelativeLayout>

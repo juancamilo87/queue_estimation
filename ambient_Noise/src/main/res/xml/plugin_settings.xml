@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <com.aware.ui.Aware_Toolbar android:title="@string/app_name" />
+
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:key="status_plugin_ambient_noise"
+        android:persistent="true"
+        android:summary="Detects silent from noisy surroundings."
+        android:title="Active" />
+
+    <EditTextPreference
+        android:defaultValue="5"
+        android:key="frequency_plugin_ambient_noise"
+        android:persistent="true"
+        android:summary="Every 5 minutes"
+        android:title="How frequently to sample audio (in minutes)"
+        android:inputType="numberDecimal" />
+
+    <EditTextPreference
+        android:defaultValue="30"
+        android:key="plugin_ambient_noise_sample_size"
+        android:persistent="true"
+        android:summary="Listen 30 second(s)"
+        android:title="How long to sample for (in seconds)"
+        android:inputType="numberDecimal"/>
+
+    <!-- Default silence threshold is based on: http://www.industrialnoisecontrol.com/comparative-noise-examples.htm -->
+    <EditTextPreference
+        android:defaultValue="50"
+        android:key="plugin_ambient_noise_silence_threshold"
+        android:persistent="true"
+        android:summary="Silent until 50dB"
+        android:title="How loud is silence?"
+        android:inputType="numberDecimal"/>
+
+</PreferenceScreen>

@@ -1,11 +1,10 @@
-
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion "22.0.1"
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
     defaultConfig {
-        applicationId 'com.aware.plugin.queuetracescollector'
+        applicationId 'com.aware.plugin.queue_estimation'
         minSdkVersion 10
         targetSdkVersion 22
         versionCode 3
@@ -21,13 +20,22 @@ android {
     }
 }
 
+repositories {
+    maven { url "https://jitpack.io" }
+    maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:22.0.1'
-    compile 'com.google.android.gms:play-services:+'
-    compile 'com.android.support:cardview-v7:+'
-    compile 'com.awareframework:aware-core:+@aar'
-    compile 'com.android.support:recyclerview-v7:+'
-    compile 'com.google.maps.android:android-maps-utils:0.3+'
-    compile 'com.android.support:support-v4:22.2.0'
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'com.android.support:recyclerview-v7:23.1.1'
+    compile 'com.google.android.gms:play-services-maps:8.3.0'
+    compile 'com.google.android.gms:play-services-nearby:8.3.0'
+    compile 'com.google.android.gms:play-services-location:8.3.0'
+    compile 'com.android.support:cardview-v7:23.1.1'
+    compile 'com.awareframework:aware-core:3.8.7@aar'
+    compile 'com.android.support:support-v4:23.1.1'
+    compile 'com.squareup.okhttp:okhttp:2.5.0'
+    compile project(':ambient_Noise')
+    compile 'com.google.maps.android:android-maps-utils:0.4'
 }

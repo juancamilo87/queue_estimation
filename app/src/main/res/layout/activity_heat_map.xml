@@ -5,8 +5,9 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:layout_height="60dp"
+        android:orientation="horizontal"
+        android:background="@color/primary_text_default_material_light">
 
         <TextView
             android:layout_width="wrap_content"
@@ -14,6 +15,8 @@
             android:layout_marginStart="15dp"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
+            android:textSize="30sp"
+            android:textColor="@android:color/white"
             android:text="Waiting Times"
             android:textAppearance="@android:style/TextAppearance.Large"/>
         <ImageButton
@@ -26,7 +29,7 @@
             android:layout_centerVertical="true"
             android:background="@android:color/transparent"
             android:src="@android:drawable/ic_menu_info_details"
-            android:tint="@color/secondary_text_default_material_light"/>
+            android:tint="@android:color/white"/>
     </RelativeLayout>
     <RelativeLayout
         android:layout_width="match_parent"
