@@ -140,9 +140,11 @@ public class HomeScreen extends Activity {
         context = this;
         setContentView(R.layout.activity_home_screen);
 
-        Intent aware = new Intent(getApplicationContext(), Aware.class);
-        startService(aware);
+//        Intent aware = new Intent(getApplicationContext(), Aware.class);
+//        startService(aware);
+
         Aware.setSetting(this, Aware_Preferences.DEBUG_FLAG, true);
+//        Aware.startPlugin(this, "com.aware.plugin.queue_estimation");
 
         context_button = (ImageButton) findViewById(R.id.quit_menu);
         registerForContextMenu(context_button);
@@ -207,27 +209,27 @@ public class HomeScreen extends Activity {
             }
         });
 
-        // Fixing Later Map loading Delay
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    MapView mv = new MapView(getApplicationContext());
-                    mv.onCreate(null);
-                    mv.onPause();
-                    mv.onDestroy();
-                }catch (Exception ignored){
-
-                }
-
-                LocationDataSource lds = new LocationDataSource(getApplicationContext());
-                lds.open();
-                lds.cleanDB();
-                PlacesDataSource pds = new PlacesDataSource(getApplicationContext());
-                pds.open();
-                pds.cleanDB();
-            }
-        }).start();
+//        // Fixing Later Map loading Delay
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    MapView mv = new MapView(getApplicationContext());
+//                    mv.onCreate(null);
+//                    mv.onPause();
+//                    mv.onDestroy();
+//                }catch (Exception ignored){
+//
+//                }
+//
+//                LocationDataSource lds = new LocationDataSource(getApplicationContext());
+//                lds.open();
+//                lds.cleanDB();
+//                PlacesDataSource pds = new PlacesDataSource(getApplicationContext());
+//                pds.open();
+//                pds.cleanDB();
+//            }
+//        }).start();
 
     }
 
@@ -245,8 +247,8 @@ public class HomeScreen extends Activity {
         if (item.getTitle() == "Action 1") {
             Toast.makeText(this, "Action 1 invoked", Toast.LENGTH_SHORT).show();
             Aware.joinStudy(this, "https://api.awareframework.com/index.php/webservice/index/359/c7VKnU0IQPqD");
-            Aware.startPlugin(this, "com.aware.plugin.queue_estimation");
 
+            Aware.startPlugin(this, "com.aware.plugin.queue_estimation");
         }
         else if (item.getTitle() == "Action 2") {
             Toast.makeText(this, "Action 2 invoked", Toast.LENGTH_SHORT).show();
@@ -293,16 +295,30 @@ public class HomeScreen extends Activity {
 
     private void stopSensors()
     {
-        Aware.stopSensor(this, Aware_Preferences.STATUS_WIFI);
-        Aware.stopSensor(this, Aware_Preferences.STATUS_TELEPHONY);
+        Log.d("QUEUE", "Stop sensors");
+
+        Aware.setSetting(this, Aware_Preferences.STATUS_WIFI, false);
+//        Aware.stopSensor(this, Aware_Preferences.STATUS_WIFI);
+        Aware.setSetting(this, Aware_Preferences.STATUS_TELEPHONY, false);
+//        Aware.stopSensor(this, Aware_Preferences.STATUS_TELEPHONY);
+        Aware.setSetting(this, Settings.STATUS_PLUGIN_AMBIENT_NOISE, false);
         Aware.stopPlugin(this, "com.aware.plugin.ambient_noise");
+        Intent aware = new Intent(getApplicationContext(), Aware.class);
+        startService(aware);
+//        Aware.stopPlugin(this, "com.aware.plugin.ambient_noise");
     }
 
     private void startSensors()
     {
+        Log.d("QUEUE","Start sensors");
+//        Intent awareIntent = new Intent(getApplicationContext(),Aware.class);
+//        startService(awareIntent);
+        Aware.setSetting(this, Aware_Preferences.STATUS_WIFI, true);
         Aware.setSetting(this, Aware_Preferences.FREQUENCY_WIFI, 300);
         Aware.startSensor(this, Aware_Preferences.STATUS_WIFI);
+        Aware.setSetting(this, Aware_Preferences.STATUS_TELEPHONY, true);
         Aware.startSensor(this, Aware_Preferences.STATUS_TELEPHONY);
+        Aware.setSetting(this, Settings.STATUS_PLUGIN_AMBIENT_NOISE, true);
         Aware.setSetting(this, Settings.FREQUENCY_PLUGIN_AMBIENT_NOISE, 5);
         Aware.setSetting(this, Settings.PLUGIN_AMBIENT_NOISE_SAMPLE_SIZE, 2);
         Aware.setSetting(this, Settings.PLUGIN_AMBIENT_NOISE_SILENCE_THRESHOLD, 50);
