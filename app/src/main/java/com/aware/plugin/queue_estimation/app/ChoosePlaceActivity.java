@@ -389,15 +389,17 @@ public class ChoosePlaceActivity extends Activity implements GoogleApiClient.Con
                     }
                     catch(Exception e)
                     {
-                        Log.e(HomeScreen.LOG_TAG, "Failed"); //response data
+                        Log.e(HomeScreen.LOG_TAG, "Failed");
+                        e.printStackTrace();//response data
                     }
                 }
             }
 
             Collections.sort(places, new LocationComparator());
             double current_distance = 10000;
-            for(int i = places.size()-1; i>18 || current_distance>200; i--)
+            for(int i = places.size()-1; (i>18 || current_distance>200) && i>=0; i--)
             {
+                Log.d("QUEUE","i="+i);
                 current_distance = places.get(i).getDistance();
                 places.remove(i);
             }

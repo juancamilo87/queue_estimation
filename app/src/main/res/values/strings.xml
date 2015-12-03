@@ -22,5 +22,10 @@
     <string name="home_messages_wall_btn">Messages Wall</string>
     <string name="home_map_btn">View Map</string>
 
+    <string name="aware_activate_accessibility">Activate Queue Estimator in Accessibility Services.</string>
+
+    <string name="join_study">Join Study</string>
+    <string name="quit_study">Quit Study</string>
+
 
 </resources>

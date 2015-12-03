@@ -1,1 +1,1 @@
-include ':app', ':ambient_Noise'
+include ':app', ':ambient_Noise', ':aware-core'

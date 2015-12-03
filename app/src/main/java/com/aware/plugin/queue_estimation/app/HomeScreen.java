@@ -21,8 +21,10 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.ContextMenu;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -30,6 +32,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.aware.Applications;
 import com.aware.Aware;
 import com.aware.Aware_Preferences;
 import com.aware.plugin.ambient_noise.Plugin;
@@ -89,6 +92,8 @@ public class HomeScreen extends Activity {
     private static final String TRACES_CSV_FILE = "traces.csv";
     private static final String APP_FOLDER = "Queue_Estimation";
 
+    private static final String STUDY_STATUS = "STUDY_STATUS";
+
     private Context context;
 
     private ImageButton btn_start_stop;
@@ -140,13 +145,20 @@ public class HomeScreen extends Activity {
         context = this;
         setContentView(R.layout.activity_home_screen);
 
-//        Intent aware = new Intent(getApplicationContext(), Aware.class);
-//        startService(aware);
+        Intent aware = new Intent(this, Aware.class);
+        startService(aware);
 
         Aware.setSetting(this, Aware_Preferences.DEBUG_FLAG, true);
+
+        //Ask accessibility to be activated
+        Applications.isAccessibilityServiceActive(getApplicationContext());
+
 //        Aware.startPlugin(this, "com.aware.plugin.queue_estimation");
 
         context_button = (ImageButton) findViewById(R.id.quit_menu);
+
+        locating = false;
+        prefs = getSharedPreferences(PREFS_NAME, 0);
         registerForContextMenu(context_button);
         context_button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -155,8 +167,6 @@ public class HomeScreen extends Activity {
             }
         });
 
-        locating = false;
-        prefs = getSharedPreferences(PREFS_NAME, 0);
         message_posted = prefs.getBoolean(PREF_MESSAGE_POSTED, false);
         queuing = prefs.getBoolean(PREF_QUEUING, false);
         inPlace = prefs.getBoolean(PREF_IN_PLACE, false);
@@ -236,25 +246,50 @@ public class HomeScreen extends Activity {
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
-        menu.setHeaderTitle("Context Menu");
-        menu.add(0, v.getId(), 0, "Action 1");
-        menu.add(0, v.getId(), 0, "Action 2");
-        menu.add(0, v.getId(), 0, "Action 3");
+//        menu.setHeaderTitle("Queuing Study");
+        LayoutInflater headerInflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+        ViewGroup header = (ViewGroup) headerInflater.inflate(
+                R.layout.context_menu_header, null);
+
+        menu.setHeaderView(header);
+        menu.add(0, v.getId(), 0, prefs.getString(STUDY_STATUS, getString(R.string.join_study)));
     }
 
     @Override
-    public boolean onContextItemSelected(MenuItem item) {
-        if (item.getTitle() == "Action 1") {
-            Toast.makeText(this, "Action 1 invoked", Toast.LENGTH_SHORT).show();
-            Aware.joinStudy(this, "https://api.awareframework.com/index.php/webservice/index/359/c7VKnU0IQPqD");
+    public boolean onContextItemSelected(final MenuItem item) {
+        Log.d("QUEUE_COMAG", item.getTitle().toString());
+        if (item.getTitle().toString().equals(getString(R.string.join_study))) {
+//            Toast.makeText(this, "Action 1 invoked", Toast.LENGTH_SHORT).show();
+            Handler handler = new Handler();
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    Aware.joinStudy(getApplicationContext(), "https://api.awareframework.com/index.php/webservice/index/359/c7VKnU0IQPqD");
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString(STUDY_STATUS, getString(R.string.quit_study));
+                    editor.commit();
+                    item.setTitle(prefs.getString(STUDY_STATUS, getString(R.string.quit_study)));
+                }
+            };
+            handler.post(runnable);
 
-            Aware.startPlugin(this, "com.aware.plugin.queue_estimation");
+
+//            Aware.startPlugin(this, "com.aware.plugin.queue_estimation");
         }
-        else if (item.getTitle() == "Action 2") {
-            Toast.makeText(this, "Action 2 invoked", Toast.LENGTH_SHORT).show();
-        }
-        else if (item.getTitle() == "Action 3") {
-            Toast.makeText(this, "Action 3 invoked", Toast.LENGTH_SHORT).show();
+        else if (item.getTitle().toString().equals(getString(R.string.quit_study))) {
+            Handler handler = new Handler();
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    Aware.reset(getApplicationContext());
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString(STUDY_STATUS, getString(R.string.join_study));
+                    editor.commit();
+                    item.setTitle(prefs.getString(STUDY_STATUS, getString(R.string.join_study)));
+                }
+            };
+            handler.post(runnable);
         }
         else {
             return false;
@@ -297,6 +332,8 @@ public class HomeScreen extends Activity {
     {
         Log.d("QUEUE", "Stop sensors");
 
+        Intent aware1 = new Intent(getApplicationContext(), Aware.class);
+        startService(aware1);
         Aware.setSetting(this, Aware_Preferences.STATUS_WIFI, false);
 //        Aware.stopSensor(this, Aware_Preferences.STATUS_WIFI);
         Aware.setSetting(this, Aware_Preferences.STATUS_TELEPHONY, false);
@@ -311,8 +348,8 @@ public class HomeScreen extends Activity {
     private void startSensors()
     {
         Log.d("QUEUE","Start sensors");
-//        Intent awareIntent = new Intent(getApplicationContext(),Aware.class);
-//        startService(awareIntent);
+        Intent awareIntent = new Intent(getApplicationContext(),Aware.class);
+        startService(awareIntent);
         Aware.setSetting(this, Aware_Preferences.STATUS_WIFI, true);
         Aware.setSetting(this, Aware_Preferences.FREQUENCY_WIFI, 300);
         Aware.startSensor(this, Aware_Preferences.STATUS_WIFI);
@@ -320,7 +357,7 @@ public class HomeScreen extends Activity {
         Aware.startSensor(this, Aware_Preferences.STATUS_TELEPHONY);
         Aware.setSetting(this, Settings.STATUS_PLUGIN_AMBIENT_NOISE, true);
         Aware.setSetting(this, Settings.FREQUENCY_PLUGIN_AMBIENT_NOISE, 5);
-        Aware.setSetting(this, Settings.PLUGIN_AMBIENT_NOISE_SAMPLE_SIZE, 2);
+        Aware.setSetting(this, Settings.PLUGIN_AMBIENT_NOISE_SAMPLE_SIZE, 30);
         Aware.setSetting(this, Settings.PLUGIN_AMBIENT_NOISE_SILENCE_THRESHOLD, 50);
         Aware.startPlugin(this, "com.aware.plugin.ambient_noise");
     }
@@ -647,6 +684,8 @@ public class HomeScreen extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+//        Intent aware = new Intent(getApplicationContext(), Aware.class);
+//        startService(aware);
         initializeButtons();
     }
 

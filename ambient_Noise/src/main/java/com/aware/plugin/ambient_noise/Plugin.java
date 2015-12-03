@@ -79,6 +79,9 @@ public class Plugin extends Aware_Plugin {
 		CONTEXT_PRODUCER = new ContextProducer() {
 			@Override
 			public void onContext() {
+                Log.d(TAG, "Ambient noise collected - Freq: "+AudioAnalyser.sound_frequency+", " +
+                        "db: "+AudioAnalyser.sound_db+", rms: "+AudioAnalyser.sound_rms+", " +
+                        "is_silent: "+AudioAnalyser.is_silent);
 				Intent context_ambient_noise = new Intent();
 				context_ambient_noise.setAction(ACTION_AWARE_PLUGIN_AMBIENT_NOISE);
 				context_ambient_noise.putExtra(EXTRA_SOUND_FREQUENCY, AudioAnalyser.sound_frequency);
