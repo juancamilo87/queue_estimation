@@ -3,12 +3,12 @@
     <item
         android:state_pressed="true">
         <bitmap android:src="@drawable/ic_send_white_48dp"
-            android:tint="@color/primary_text_default_material_light" />
+            android:tint="@color/primary_color" />
     </item>
     <item
         android:state_focused="true">
         <bitmap android:src="@drawable/ic_send_white_48dp"
-            android:tint="@color/secondary_text_default_material_light" />
+            android:tint="@color/secondary_color" />
     </item>
     <item
         android:state_enabled="false">
@@ -17,6 +17,6 @@
     </item>
     <item>
         <bitmap android:src="@drawable/ic_send_white_48dp"
-            android:tint="@color/secondary_text_default_material_light" />
+            android:tint="@color/secondary_color"/>
     </item>
 </selector>
